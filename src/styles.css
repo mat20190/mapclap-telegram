@@ -116,11 +116,48 @@ button {
   color: var(--muted);
 }
 
+.onboarding-grid {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 4px;
+}
+
+.onboarding-grid article {
+  display: grid;
+  gap: 3px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--line);
+}
+
+.onboarding-grid strong {
+  color: #fff8eb;
+}
+
+.onboarding-grid span {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.28;
+}
+
 .intro-mascot {
   height: 238px;
   display: grid;
   place-items: end center;
   overflow: hidden;
+}
+
+.mascot-model {
+  width: 210px;
+  height: 230px;
+  display: block;
+  --poster-color: transparent;
+}
+
+.mascot-model.small {
+  width: 78px;
+  height: 82px;
 }
 
 .hero-card h1,
@@ -288,6 +325,21 @@ button {
   box-shadow: inset 0 -3px 0 var(--accent, var(--gold));
 }
 
+.search-panel {
+  margin-bottom: 10px;
+}
+
+.search-panel input {
+  width: 100%;
+  height: 50px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 0 14px;
+  outline: none;
+}
+
 .map-card {
   overflow: hidden;
   margin-bottom: 10px;
@@ -317,6 +369,20 @@ button {
 .map-overlay {
   z-index: 2;
   pointer-events: none;
+}
+
+.map-hint {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(18, 16, 13, 0.74);
+  color: #fff8eb;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
 }
 
 .location-request {
@@ -474,6 +540,29 @@ button {
   color: #eadac7;
 }
 
+.quick-prompts {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  scrollbar-width: none;
+}
+
+.quick-prompts::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-prompts button {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff8eb;
+  border: 1px solid var(--line);
+  font-weight: 800;
+}
+
 .advisor-input {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -499,6 +588,18 @@ button {
   margin-bottom: 12px;
 }
 
+.section-grid.horizontal {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.section-grid.horizontal::-webkit-scrollbar {
+  display: none;
+}
+
 .section-tile {
   min-height: 106px;
   padding: 14px;
@@ -508,6 +609,11 @@ button {
   color: var(--text);
   text-align: left;
   box-shadow: inset 0 -5px 0 var(--accent);
+}
+
+.section-grid.horizontal .section-tile {
+  flex: 0 0 154px;
+  scroll-snap-align: start;
 }
 
 .section-tile span {
@@ -526,6 +632,18 @@ button {
   padding-bottom: 28px;
 }
 
+.places-list.horizontal {
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 18px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.places-list.horizontal::-webkit-scrollbar {
+  display: none;
+}
+
 .place-card {
   display: grid;
   grid-template-columns: 138px 1fr;
@@ -535,6 +653,11 @@ button {
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.07);
   color: inherit;
+}
+
+.places-list.horizontal .place-card {
+  flex: 0 0 310px;
+  scroll-snap-align: start;
 }
 
 .place-card img {
@@ -691,6 +814,11 @@ button {
   font-weight: 800;
 }
 
+.profile-screen {
+  display: grid;
+  gap: 12px;
+}
+
 .profile-panel {
   padding: 16px;
 }
@@ -701,6 +829,36 @@ button {
 
 .profile-panel span {
   color: var(--muted);
+}
+
+.interest-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.interest-cloud span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  color: #eadac7;
+  font-weight: 800;
+}
+
+.empty-state {
+  flex: 0 0 280px;
+  min-height: 132px;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border: 1px dashed rgba(255, 248, 235, 0.22);
+  border-radius: 22px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .corgi-face {

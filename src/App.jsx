@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { onboardingCards, profileInterests, quickPrompts } from "./data/appContent";
 import { categoryColors, categoryLabels, places } from "./data/places";
 import { MAPCLAP_CONFIG } from "./config/mapclap";
 import {
@@ -11,6 +12,7 @@ import {
   watchUserLocation,
 } from "./services/location";
 import { requestRoute } from "./services/routing";
+import { getSavedPlaces, saveSavedPlaces, toggleSavedPlace } from "./services/savedPlaces";
 import { loadYandexMaps } from "./services/yandexMaps";
 import "./styles.css";
 
@@ -43,6 +45,44 @@ function CorgiFace({ small = false, calm = false }) {
   );
 }
 
+function Mascot3D({ small = false }) {
+  const [hasModel, setHasModel] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/models/clap-corgi.glb", { method: "HEAD" })
+      .then((response) => {
+        if (alive) setHasModel(response.ok);
+      })
+      .catch(() => {
+        if (alive) setHasModel(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!hasModel) return <CorgiFace small={small} calm />;
+
+  return (
+    <model-viewer
+      class={`mascot-model ${small ? "small" : ""}`}
+      src="/models/clap-corgi.glb"
+      camera-controls={false}
+      auto-rotate
+      auto-rotate-delay="0"
+      rotation-per-second="18deg"
+      disable-zoom
+      shadow-intensity="0.45"
+      exposure="1.05"
+      camera-orbit="10deg 78deg 2.6m"
+      field-of-view="28deg"
+      interaction-prompt="none"
+      aria-label="Клэп"
+    />
+  );
+}
+
 function CorgiBack({ progress = 0 }) {
   const step = Math.sin(progress * Math.PI * 2) * 2.5;
   return (
@@ -62,6 +102,55 @@ function CorgiBack({ progress = 0 }) {
       <div className="map-leg four" />
     </div>
   );
+}
+
+function corgiBackSvg() {
+  return (
+    "data:image/svg+xml;charset=utf-8," +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="82" height="92" viewBox="0 0 82 92">
+        <ellipse cx="41" cy="82" rx="22" ry="6" fill="rgba(0,0,0,.28)"/>
+        <path d="M23 23 13 4c13 3 20 11 22 23zM59 23 69 4c-13 3-20 11-22 23z" fill="#c98346" stroke="#713d1d" stroke-width="3" stroke-linejoin="round"/>
+        <path d="M26 16c5-5 25-5 30 0 7 7 8 27 1 35-7 8-25 8-32 0-7-8-6-28 1-35z" fill="#c98346"/>
+        <path d="M35 13h12v45H35z" fill="#fff1dc"/>
+        <path d="M22 54c9-10 29-11 38 0 8 10 8 24-1 29-9 5-27 5-36 0-9-5-9-19-1-29z" fill="#c98346"/>
+        <path d="M33 52h16v35H33z" fill="#fff1dc"/>
+        <circle cx="17" cy="65" r="9" fill="#fff1dc" stroke="#c98346" stroke-width="5"/>
+        <rect x="23" y="76" width="10" height="13" rx="5" fill="#fff1dc"/>
+        <rect x="35" y="76" width="10" height="13" rx="5" fill="#fff1dc"/>
+        <rect x="48" y="76" width="10" height="13" rx="5" fill="#fff1dc"/>
+      </svg>`
+    )
+  );
+}
+
+function pickPlaceByQuery(query, items) {
+  const text = query.toLowerCase();
+  const rules = [
+    { keys: ["спорт", "бег", "трен", "актив", "вел", "прогул"], category: "sport" },
+    { keys: ["музык", "концерт", "джаз", "танц", "звук"], category: "music" },
+    { keys: ["театр", "спектак", "сцена", "постанов"], category: "theatre" },
+    { keys: ["музей", "выстав", "искус", "истор", "культур"], category: "museum" },
+    { keys: ["есть", "еда", "кофе", "ужин", "завтрак", "ресторан", "кафе"], category: "food" },
+    { keys: ["развлеч", "кино", "квест", "весел", "компани"], category: "fun" },
+  ];
+
+  const direct = items.find((place) => text.includes(place.title.toLowerCase()));
+  if (direct) return direct;
+
+  const scored = items
+    .map((place) => {
+      const rule = rules.find((entry) => entry.category === place.category);
+      const keywordScore = rule?.keys.some((key) => text.includes(key)) ? 8 : 0;
+      const descriptionWords = `${place.title} ${place.description} ${place.address}`.toLowerCase();
+      const textScore = text
+        .split(/\s+/)
+        .filter((word) => word.length > 3 && descriptionWords.includes(word)).length;
+      return { place, score: keywordScore + textScore };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.score > 0 ? scored[0].place : items[0];
 }
 
 function AuthScreen({ onAuth }) {
@@ -101,12 +190,20 @@ function AuthScreen({ onAuth }) {
             </div>
           </div>
           <div className="intro-mascot">
-            <CorgiFace />
+            <Mascot3D />
           </div>
           <h1>Город под твое настроение</h1>
           <p className="intro-copy">
             Клэп подберет места, построит маршрут и поможет быстро понять, куда идти прямо сейчас.
           </p>
+          <div className="onboarding-grid">
+            {onboardingCards.map((card) => (
+              <article key={card.title}>
+                <strong>{card.title}</strong>
+                <span>{card.text}</span>
+              </article>
+            ))}
+          </div>
           <div className="auth-actions">
             <button
               type="button"
@@ -141,7 +238,7 @@ function AuthScreen({ onAuth }) {
           Назад
         </button>
         <div className="auth-top">
-          <CorgiFace small />
+          <Mascot3D small />
           <div>
             <h1>{mode === "register" ? "Регистрация" : "Вход"}</h1>
             <p>
@@ -311,13 +408,9 @@ function MapPanel({
         { hintContent: "Ты здесь. Клэп стартует отсюда." },
         {
           iconLayout: "default#imageWithContent",
-          iconImageHref:
-            "data:image/svg+xml;charset=utf-8," +
-            encodeURIComponent(
-              '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><ellipse cx="29" cy="49" rx="16" ry="5" fill="rgba(0,0,0,.28)"/><path d="M17 18l-6-13c10 2 14 9 15 15zM41 18L47 5c-10 2-14 9-15 15z" fill="#c98346" stroke="#6f3d1d" stroke-width="2"/><ellipse cx="29" cy="25" rx="17" ry="14" fill="#c98346"/><path d="M24 12h10v25H24z" fill="#fff1dc"/><ellipse cx="29" cy="43" rx="22" ry="11" fill="#c98346"/><path d="M22 39h14v15H22z" fill="#fff1dc"/><circle cx="13" cy="43" r="6" fill="#fff1dc" stroke="#c98346" stroke-width="3"/></svg>'
-            ),
-          iconImageSize: [58, 58],
-          iconImageOffset: [-29, -48],
+          iconImageHref: corgiBackSvg(),
+          iconImageSize: [82, 92],
+          iconImageOffset: [-41, -78],
         }
       );
       map.geoObjects.add(userPlacemarkRef.current);
@@ -325,6 +418,16 @@ function MapPanel({
       userPlacemarkRef.current?.geometry.setCoordinates([userPosition.lat, userPosition.lon]);
     }
   }, [userPosition, mapReady]);
+
+  useEffect(() => {
+    if (!userPlacemarkRef.current) return;
+    const movingPoint = route?.points?.length
+      ? route.points[Math.min(route.points.length - 1, Math.floor(routeProgress * (route.points.length - 1)))]
+      : userPosition;
+    if (movingPoint) {
+      userPlacemarkRef.current.geometry.setCoordinates([movingPoint.lat, movingPoint.lon]);
+    }
+  }, [route, routeProgress, userPosition]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -389,10 +492,6 @@ function MapPanel({
     }
   }, [expanded, selected, route, mapReady]);
 
-  const dogPoint = route?.points?.length
-    ? route.points[Math.min(route.points.length - 1, Math.floor(routeProgress * (route.points.length - 1)))]
-    : userPosition || defaultPosition;
-
   return (
     <section className={`map-card ${expanded ? "expanded" : ""}`}>
       <div className="map-stack">
@@ -409,9 +508,7 @@ function MapPanel({
           </div>
         )}
         <div className="map-overlay">
-          <div className="dog-floating" style={{ left: `${clamp(48 + (dogPoint.lon - defaultPosition.lon) * 900, 18, 78)}%`, top: `${clamp(48 - (dogPoint.lat - defaultPosition.lat) * 900, 22, 70)}%` }}>
-            <CorgiBack progress={routeProgress} />
-          </div>
+          <span className="map-hint">Клэп стартует от твоей геопозиции</span>
         </div>
       </div>
     </section>
@@ -453,10 +550,7 @@ function AdvisorChat({ items, onPick }) {
       setAnswer("Напиши, чего хочется: музыка, прогулка, музей, еда, спорт или спокойный вечер.");
       return;
     }
-    const matched =
-      items.find((place) => text.includes(categoryLabels[place.category].toLowerCase())) ||
-      items.find((place) => place.title.toLowerCase().includes(text.split(" ")[0])) ||
-      items[Math.floor(Math.random() * items.length)];
+    const matched = pickPlaceByQuery(text, items);
     setAnswer(`Я бы начал с места: ${matched.title}. ${matched.description}`);
     onPick(matched);
   };
@@ -464,13 +558,28 @@ function AdvisorChat({ items, onPick }) {
   return (
     <section className="advisor">
       <div className="advisor-head">
-        <CorgiFace small />
+      <Mascot3D small />
         <div>
           <p>Клэп советует</p>
           <h3>Подбор места под настроение</h3>
         </div>
       </div>
       <p className="advisor-answer">{answer}</p>
+      <div className="quick-prompts">
+        {quickPrompts.map((prompt) => (
+          <button
+            key={prompt}
+            onClick={() => {
+              setQuery(prompt);
+              const matched = pickPlaceByQuery(prompt, items);
+              setAnswer(`Я бы начал с места: ${matched.title}. ${matched.description}`);
+              onPick(matched);
+            }}
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
       <div className="advisor-input">
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Например: хочу музыку и красивый вечер" />
         <button onClick={ask}>Подобрать</button>
@@ -479,14 +588,14 @@ function AdvisorChat({ items, onPick }) {
   );
 }
 
-function PlaceCard({ place, onPick }) {
+function PlaceCard({ place, onPick, saved }) {
   return (
     <article className="place-card" onClick={() => onPick(place)}>
       <img src={place.imageUrl} alt={place.title} loading="lazy" />
       <div className="place-body">
         <div className="place-meta">
           <span style={{ background: categoryColors[place.category] }}>{categoryLabels[place.category]}</span>
-          <small>{place.price}</small>
+          <small>{saved ? "Сохранено" : place.price}</small>
         </div>
         <h3>{place.title}</h3>
         <p>{place.description}</p>
@@ -499,7 +608,7 @@ function PlaceCard({ place, onPick }) {
   );
 }
 
-function DetailCard({ place, route, onClose, onRoute }) {
+function DetailCard({ place, route, onClose, onRoute, onSave, isSaved }) {
   if (!place) return null;
   return (
     <div className="detail-backdrop" onClick={onClose}>
@@ -528,6 +637,9 @@ function DetailCard({ place, route, onClose, onRoute }) {
           <div className="detail-actions">
             <button className="primary-button" onClick={() => onRoute(place)}>
               Маршрут
+            </button>
+            <button className="ghost-button" onClick={() => onSave(place.id)}>
+              {isSaved ? "Убрано" : "Сохранить"}
             </button>
             <a className="ghost-link" href={place.site} target="_blank" rel="noreferrer">
               Сайт места
@@ -558,18 +670,44 @@ function FeaturedStrip({ items, onPick }) {
   );
 }
 
-function ProfilePanel({ user, onLogout }) {
+function SearchPanel({ value, onChange }) {
   return (
-    <section className="profile-panel">
-      <CorgiFace small />
-      <div>
-        <p>Кабинет пользователя</p>
-        <h2>{user.name}</h2>
-        <span>{user.city}</span>
+    <section className="search-panel">
+      <input value={value} onChange={(event) => onChange(event.target.value)} placeholder="Найти место, еду, музыку или музей" />
+    </section>
+  );
+}
+
+function ProfilePanel({ user, savedItems, onPick, onLogout }) {
+  return (
+    <section className="profile-screen">
+      <div className="profile-panel">
+        <CorgiFace small />
+        <div>
+          <p>Кабинет пользователя</p>
+          <h2>{user.name}</h2>
+          <span>{user.city}</span>
+        </div>
+        <button className="ghost-button" onClick={onLogout}>
+          Выйти
+        </button>
       </div>
-      <button className="ghost-button" onClick={onLogout}>
-        Выйти
-      </button>
+      <div className="interest-cloud">
+        {profileInterests.map((interest) => (
+          <span key={interest}>{interest}</span>
+        ))}
+      </div>
+      <div className="section-title">
+        <p>Мои места</p>
+        <h2>{savedItems.length ? `${savedItems.length} сохранено` : "Пока пусто"}</h2>
+      </div>
+      <section className="places-list horizontal">
+        {savedItems.length ? (
+          savedItems.map((place) => <PlaceCard key={place.id} place={place} onPick={onPick} saved />)
+        ) : (
+          <article className="empty-state">Сохрани место из карточки, и оно появится здесь.</article>
+        )}
+      </section>
     </section>
   );
 }
@@ -583,6 +721,8 @@ function App() {
   const [routeProgress, setRouteProgress] = useState(0);
   const [userPosition, setUserPosition] = useState(defaultPosition);
   const [locationStatus, setLocationStatus] = useState("idle");
+  const [savedIds, setSavedIds] = useState([]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     tg?.ready();
@@ -593,6 +733,7 @@ function App() {
   useEffect(() => {
     const saved = getStoredUser();
     if (saved) setUser(saved);
+    setSavedIds(getSavedPlaces());
   }, []);
 
   useEffect(() => {
@@ -614,9 +755,15 @@ function App() {
   }, [route]);
 
   const visiblePlaces = useMemo(() => {
-    if (activeCategory === "all") return places;
-    return places.filter((place) => place.category === activeCategory);
-  }, [activeCategory]);
+    const byCategory = activeCategory === "all" ? places : places.filter((place) => place.category === activeCategory);
+    const query = search.trim().toLowerCase();
+    if (!query) return byCategory;
+    return byCategory.filter((place) =>
+      `${place.title} ${place.address} ${place.description} ${categoryLabels[place.category]}`.toLowerCase().includes(query)
+    );
+  }, [activeCategory, search]);
+
+  const savedItems = useMemo(() => places.filter((place) => savedIds.includes(place.id)), [savedIds]);
 
   const buildRoute = async (place) => {
     setSelected(place);
@@ -632,6 +779,14 @@ function App() {
     setUser(null);
     setSelected(null);
     setRoute(null);
+  };
+
+  const toggleSaved = (placeId) => {
+    setSavedIds((current) => {
+      const next = toggleSavedPlace(current, placeId);
+      saveSavedPlaces(next);
+      return next;
+    });
   };
 
   const askLocation = () => {
@@ -650,7 +805,7 @@ function App() {
           <p>MapClap</p>
           <h1>Куда пойдем?</h1>
         </div>
-        <CorgiFace small calm />
+        <Mascot3D small />
       </header>
 
       <TopNav activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -658,9 +813,10 @@ function App() {
       {activeTab !== "profile" && <CategoryRail activeCategory={activeCategory} setActiveCategory={setActiveCategory} />}
 
       {activeTab === "profile" ? (
-        <ProfilePanel user={user} onLogout={logout} />
+        <ProfilePanel user={user} savedItems={savedItems} onPick={buildRoute} onLogout={logout} />
       ) : (
         <>
+          <SearchPanel value={search} onChange={setSearch} />
           <MapPanel
             items={visiblePlaces}
             selected={selected}
@@ -673,37 +829,43 @@ function App() {
             onRequestLocation={askLocation}
           />
           <RoutePanel selected={selected} route={route} onRoute={buildRoute} />
-          <FeaturedStrip items={visiblePlaces} onPick={buildRoute} />
-          <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
           {activeTab === "sections" && (
-            <section className="section-grid">
-              {Object.entries(categoryLabels)
-                .filter(([id]) => id !== "all")
-                .map(([id, title]) => (
-                  <button
-                    key={id}
-                    className="section-tile"
-                    onClick={() => {
-                      setActiveCategory(id);
-                      setActiveTab("home");
-                    }}
-                    style={{ "--accent": categoryColors[id] }}
-                  >
-                    <span>{title}</span>
-                    <small>{places.filter((place) => place.category === id).length} мест</small>
-                  </button>
+            <>
+              <FeaturedStrip items={visiblePlaces} onPick={buildRoute} />
+              <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
+              <section className="section-grid horizontal">
+                {Object.entries(categoryLabels)
+                  .filter(([id]) => id !== "all")
+                  .map(([id, title]) => (
+                    <button
+                      key={id}
+                      className="section-tile"
+                      onClick={() => setActiveCategory(id)}
+                      style={{ "--accent": categoryColors[id] }}
+                    >
+                      <span>{title}</span>
+                      <small>{places.filter((place) => place.category === id).length} мест</small>
+                    </button>
+                  ))}
+              </section>
+              <section className="places-list horizontal">
+                {visiblePlaces.map((place) => (
+                  <PlaceCard key={place.id} place={place} onPick={buildRoute} saved={savedIds.includes(place.id)} />
                 ))}
-            </section>
+              </section>
+            </>
           )}
-          <section className="places-list">
-            {visiblePlaces.map((place) => (
-              <PlaceCard key={place.id} place={place} onPick={buildRoute} />
-            ))}
-          </section>
         </>
       )}
 
-      <DetailCard place={selected} route={route} onClose={() => setSelected(null)} onRoute={buildRoute} />
+      <DetailCard
+        place={selected}
+        route={route}
+        onClose={() => setSelected(null)}
+        onRoute={buildRoute}
+        onSave={toggleSaved}
+        isSaved={selected ? savedIds.includes(selected.id) : false}
+      />
     </main>
   );
 }
