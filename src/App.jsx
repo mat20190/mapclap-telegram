@@ -1,47 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { categoryColors, categoryLabels, places } from "./data/places";
+import { MAPCLAP_CONFIG } from "./config/mapclap";
+import { clearUser, getStoredUser, saveUser, watchUserLocation } from "./services/location";
+import { requestRoute } from "./services/routing";
+import { loadYandexMaps } from "./services/yandexMaps";
 import "./styles.css";
 
 const tg = window.Telegram?.WebApp;
-
-const defaultPosition = { lat: 55.741, lon: 37.653 };
+const defaultPosition = MAPCLAP_CONFIG.defaultPosition;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
-}
-
-function distanceKm(a, b) {
-  const radius = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLon = ((b.lon - a.lon) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const sinLat = Math.sin(dLat / 2);
-  const sinLon = Math.sin(dLon / 2);
-  const h = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon;
-  return radius * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
-}
-
-function buildDemoRoute(from, to) {
-  const points = [];
-  for (let i = 0; i <= 18; i += 1) {
-    const t = i / 18;
-    points.push({
-      lat: from.lat + (to.lat - from.lat) * t + Math.sin(t * Math.PI) * 0.0009,
-      lon: from.lon + (to.lon - from.lon) * t - Math.sin(t * Math.PI) * 0.0005,
-    });
-  }
-
-  const km = distanceKm(from, to);
-  return {
-    points,
-    distanceText: `${km.toFixed(1)} км`,
-    durationText: `${Math.max(6, Math.round((km / 4.2) * 60))} мин`,
-    source: "Демо-маршрут",
-  };
 }
 
 function CorgiFace({ small = false }) {
@@ -260,91 +230,147 @@ function CategoryRail({ activeCategory, setActiveCategory }) {
 function MapPanel({ items, selected, userPosition, route, routeProgress, onPick, expanded }) {
   const mapNode = useRef(null);
   const mapRef = useRef(null);
-  const markerLayer = useRef(null);
-  const routeLayer = useRef(null);
-  const userMarkerRef = useRef(null);
+  const routeRef = useRef(null);
+  const userPlacemarkRef = useRef(null);
+  const markerRefs = useRef([]);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return;
-    const map = L.map(mapNode.current, {
-      zoomControl: false,
-      attributionControl: false,
-      dragging: true,
-      scrollWheelZoom: true,
-      touchZoom: true,
-    }).setView([defaultPosition.lat, defaultPosition.lon], 13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      crossOrigin: true,
-    }).addTo(map);
-    markerLayer.current = L.layerGroup().addTo(map);
-    routeLayer.current = L.layerGroup().addTo(map);
-    mapRef.current = map;
-    setTimeout(() => map.invalidateSize(), 80);
+    loadYandexMaps()
+      .then((ymaps) => {
+        if (mapRef.current || !mapNode.current) return;
+        const map = new ymaps.Map(
+          mapNode.current,
+          {
+            center: [userPosition?.lat || defaultPosition.lat, userPosition?.lon || defaultPosition.lon],
+            zoom: 13,
+            controls: [],
+          },
+          {
+            suppressMapOpenBlock: true,
+            yandexMapDisablePoiInteractivity: true,
+          }
+        );
+        map.behaviors.enable(["drag", "multiTouch", "scrollZoom"]);
+        mapRef.current = map;
+        setMapReady(true);
+      })
+      .catch(() => setMapError(true));
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !markerLayer.current) return;
-    markerLayer.current.clearLayers();
+    const ymaps = window.ymaps;
+    if (!map || !ymaps) return;
+    markerRefs.current.forEach((marker) => map.geoObjects.remove(marker));
+    markerRefs.current = [];
     items.forEach((place) => {
-      const marker = L.circleMarker([place.coordinates.lat, place.coordinates.lon], {
-        radius: selected?.id === place.id ? 10 : 7,
-        color: "#15100b",
-        weight: 3,
-        fillColor: categoryColors[place.category] || "#f7cc62",
-        fillOpacity: 1,
-      })
-        .addTo(markerLayer.current)
-        .on("click", () => onPick(place));
-      marker.bindTooltip(place.title, { direction: "top", offset: [0, -8] });
+      const marker = new ymaps.Placemark(
+        [place.coordinates.lat, place.coordinates.lon],
+        {
+          hintContent: place.title,
+          balloonContent: place.title,
+        },
+        {
+          preset: selected?.id === place.id ? "islands#yellowStretchyIcon" : "islands#circleDotIcon",
+          iconColor: categoryColors[place.category] || "#f0b85a",
+        }
+      );
+      marker.events.add("click", () => onPick(place));
+      map.geoObjects.add(marker);
+      markerRefs.current.push(marker);
     });
-  }, [items, selected, onPick]);
+  }, [items, selected, onPick, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
+    const ymaps = window.ymaps;
     if (!map || !userPosition) return;
-    if (!userMarkerRef.current) {
-      const icon = L.divIcon({
-        className: "leaflet-clap-icon",
-        html: '<div class="leaflet-clap-dot"></div>',
-        iconSize: [34, 34],
-        iconAnchor: [17, 17],
-      });
-      userMarkerRef.current = L.marker([userPosition.lat, userPosition.lon], { icon }).addTo(map);
+    if (!userPlacemarkRef.current && ymaps) {
+      userPlacemarkRef.current = new ymaps.Placemark(
+        [userPosition.lat, userPosition.lon],
+        { hintContent: "Ты здесь. Клэп стартует отсюда." },
+        {
+          iconLayout: "default#imageWithContent",
+          iconImageHref:
+            "data:image/svg+xml;charset=utf-8," +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="58" height="58" viewBox="0 0 58 58"><ellipse cx="29" cy="49" rx="16" ry="5" fill="rgba(0,0,0,.28)"/><path d="M17 18l-6-13c10 2 14 9 15 15zM41 18L47 5c-10 2-14 9-15 15z" fill="#c98346" stroke="#6f3d1d" stroke-width="2"/><ellipse cx="29" cy="25" rx="17" ry="14" fill="#c98346"/><path d="M24 12h10v25H24z" fill="#fff1dc"/><ellipse cx="29" cy="43" rx="22" ry="11" fill="#c98346"/><path d="M22 39h14v15H22z" fill="#fff1dc"/><circle cx="13" cy="43" r="6" fill="#fff1dc" stroke="#c98346" stroke-width="3"/></svg>'
+            ),
+          iconImageSize: [58, 58],
+          iconImageOffset: [-29, -48],
+        }
+      );
+      map.geoObjects.add(userPlacemarkRef.current);
     } else {
-      userMarkerRef.current.setLatLng([userPosition.lat, userPosition.lon]);
+      userPlacemarkRef.current?.geometry.setCoordinates([userPosition.lat, userPosition.lon]);
     }
-  }, [userPosition]);
+  }, [userPosition, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !routeLayer.current) return;
-    routeLayer.current.clearLayers();
-    if (route?.points?.length) {
-      const line = route.points.map((point) => [point.lat, point.lon]);
-      L.polyline(line, {
-        color: "#f0b85a",
-        weight: 5,
-        opacity: 0.92,
-        lineCap: "round",
-        lineJoin: "round",
-      }).addTo(routeLayer.current);
+    const ymaps = window.ymaps;
+    if (!map || !ymaps) return;
+    if (routeRef.current) {
+      map.geoObjects.remove(routeRef.current);
+      routeRef.current = null;
     }
-  }, [route]);
+    if (route?.from && route?.to && ymaps.multiRouter) {
+      routeRef.current = new ymaps.multiRouter.MultiRoute(
+        {
+          referencePoints: [
+            [route.from.lat, route.from.lon],
+            [route.to.lat, route.to.lon],
+          ],
+          params: {
+            routingMode: "auto",
+            avoidTrafficJams: true,
+          },
+        },
+        {
+          boundsAutoApply: false,
+          routeActiveStrokeColor: "#f0b85a",
+          routeActiveStrokeWidth: 6,
+          routeStrokeStyle: "solid",
+          wayPointVisible: false,
+          viaPointVisible: false,
+          pinVisible: false,
+        }
+      );
+      map.geoObjects.add(routeRef.current);
+      return;
+    }
+    if (route?.points?.length) {
+      routeRef.current = new ymaps.Polyline(
+        route.points.map((point) => [point.lat, point.lon]),
+        {},
+        {
+          strokeColor: "#f0b85a",
+          strokeWidth: 6,
+          strokeOpacity: 0.95,
+        }
+      );
+      map.geoObjects.add(routeRef.current);
+    }
+  }, [route, mapReady]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    setTimeout(() => map.invalidateSize(), 80);
+    if (!map || !window.ymaps) return;
+    map.container.fitToViewport();
     if (route?.points?.length) {
-      map.fitBounds(route.points.map((point) => [point.lat, point.lon]), { padding: [42, 42], maxZoom: 15 });
+      map.setBounds(window.ymaps.util.bounds.fromPoints(route.points.map((point) => [point.lat, point.lon])), {
+        checkZoomRange: true,
+        zoomMargin: 44,
+      });
       return;
     }
     if (selected) {
-      map.setView([selected.coordinates.lat, selected.coordinates.lon], 14);
+      map.setCenter([selected.coordinates.lat, selected.coordinates.lon], 14, { duration: 320 });
     }
-  }, [expanded, selected, route]);
+  }, [expanded, selected, route, mapReady]);
 
   const dogPoint = route?.points?.length
     ? route.points[Math.min(route.points.length - 1, Math.floor(routeProgress * (route.points.length - 1)))]
@@ -354,6 +380,12 @@ function MapPanel({ items, selected, userPosition, route, routeProgress, onPick,
     <section className={`map-card ${expanded ? "expanded" : ""}`}>
       <div className="map-stack">
         <div ref={mapNode} className="real-map" />
+        {mapError && (
+          <div className="map-error">
+            <strong>Карта не загрузилась</strong>
+            <span>Проверь ключ Yandex Maps в Vercel: VITE_YANDEX_MAPS_API_KEY</span>
+          </div>
+        )}
         <div className="map-overlay">
           <div className="dog-floating" style={{ left: `${clamp(48 + (dogPoint.lon - defaultPosition.lon) * 900, 18, 78)}%`, top: `${clamp(48 - (dogPoint.lat - defaultPosition.lat) * 900, 22, 70)}%` }}>
             <CorgiBack progress={routeProgress} />
@@ -517,30 +549,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const saved = localStorage.getItem("mapclap-user");
-    if (saved) setUser(JSON.parse(saved));
+    const saved = getStoredUser();
+    if (saved) setUser(saved);
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    localStorage.setItem("mapclap-user", JSON.stringify(user));
+    saveUser(user);
   }, [user]);
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setUserPosition({
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-        });
-      },
-      () => {
-        setUserPosition(defaultPosition);
-      },
-      { enableHighAccuracy: true, maximumAge: 8000, timeout: 12000 }
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
+    return watchUserLocation(setUserPosition);
   }, []);
 
   useEffect(() => {
@@ -561,23 +580,12 @@ function App() {
     setActiveTab("home");
     const from = userPosition || defaultPosition;
     const to = place.coordinates;
-    try {
-      const response = await fetch("/api/route", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from, to }),
-      });
-      if (!response.ok) throw new Error("route failed");
-      const data = await response.json();
-      setRoute(data.points?.length ? data : buildDemoRoute(from, to));
-    } catch {
-      setRoute(buildDemoRoute(from, to));
-    }
+    setRoute(await requestRoute(from, to));
     setRouteProgress(0);
   };
 
   const logout = () => {
-    localStorage.removeItem("mapclap-user");
+    clearUser();
     setUser(null);
     setSelected(null);
     setRoute(null);

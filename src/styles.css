@@ -319,17 +319,24 @@ button {
   pointer-events: none;
 }
 
-.leaflet-control-container {
-  display: none;
+.map-error {
+  position: absolute;
+  inset: 14px;
+  z-index: 3;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(23, 19, 15, 0.88);
+  color: var(--text);
+  text-align: center;
+  pointer-events: none;
 }
 
-.leaflet-clap-dot {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 50% 30%, #fff2dc 0 18%, #c77735 19% 55%, #1d140e 56% 68%, transparent 69%);
-  border: 3px solid #20150c;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+.map-error span {
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .dog-floating {
