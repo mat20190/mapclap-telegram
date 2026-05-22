@@ -46,28 +46,43 @@ function CorgiFace({ small = false, calm = false }) {
 }
 
 function Mascot3D({ small = false }) {
-  const [hasModel, setHasModel] = useState(false);
+  const [modelSrc, setModelSrc] = useState("");
 
   useEffect(() => {
     let alive = true;
-    fetch("/models/clap-corgi.glb", { method: "HEAD" })
-      .then((response) => {
-        if (alive) setHasModel(response.ok);
+    const candidates = [
+      "/models/clap-corgi.glb",
+      "/models/clap.glb",
+      "/models/corgi.glb",
+      "/clap-corgi.glb",
+      "/assets/clap-corgi.glb",
+    ];
+
+    Promise.any(
+      candidates.map((src) =>
+        fetch(src, { method: "GET", cache: "no-store" }).then((response) => {
+          if (!response.ok) throw new Error(src);
+          return src;
+        })
+      )
+    )
+      .then((src) => {
+        if (alive) setModelSrc(src);
       })
       .catch(() => {
-        if (alive) setHasModel(false);
+        if (alive) setModelSrc("");
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  if (!hasModel) return <CorgiFace small={small} calm />;
+  if (!modelSrc) return <CorgiFace small={small} calm />;
 
   return (
     <model-viewer
-      class={`mascot-model ${small ? "small" : ""}`}
-      src="/models/clap-corgi.glb"
+      className={`mascot-model ${small ? "small" : ""}`}
+      src={modelSrc}
       camera-controls={false}
       auto-rotate
       auto-rotate-delay="0"
@@ -300,7 +315,7 @@ function AuthScreen({ onAuth }) {
 
 function TopNav({ activeTab, setActiveTab }) {
   return (
-    <nav className="top-nav">
+    <nav className="bottom-nav">
       {[
         ["home", "Карта"],
         ["sections", "Разделы"],
@@ -540,6 +555,28 @@ function RoutePanel({ selected, route, onRoute }) {
   );
 }
 
+function MapActionDock({ selected, route, onRoute, onShowDetails }) {
+  return (
+    <section className="map-action-dock">
+      <div>
+        <p>{selected ? "Выбрано место" : "Карта MapClap"}</p>
+        <h3>{selected ? selected.title : "Выбери точку или раздел"}</h3>
+        <span>
+          {selected && route
+            ? `${route.durationText} · ${route.distanceText}`
+            : "Клэп покажет маршрут от твоей геопозиции"}
+        </span>
+      </div>
+      {selected && (
+        <div className="map-action-buttons">
+          <button onClick={() => onRoute(selected)}>Маршрут</button>
+          <button onClick={onShowDetails}>Карточка</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function AdvisorChat({ items, onPick }) {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState("Введи свой запрос, а Клэп подберет место под настроение.");
@@ -590,7 +627,7 @@ function AdvisorChat({ items, onPick }) {
 
 function PlaceCard({ place, onPick, saved }) {
   return (
-    <article className="place-card" onClick={() => onPick(place)}>
+    <article className="place-card" onClick={() => onPick(place, true)}>
       <img src={place.imageUrl} alt={place.title} loading="lazy" />
       <div className="place-body">
         <div className="place-meta">
@@ -723,6 +760,7 @@ function App() {
   const [locationStatus, setLocationStatus] = useState("idle");
   const [savedIds, setSavedIds] = useState([]);
   const [search, setSearch] = useState("");
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     tg?.ready();
@@ -765,9 +803,10 @@ function App() {
 
   const savedItems = useMemo(() => places.filter((place) => savedIds.includes(place.id)), [savedIds]);
 
-  const buildRoute = async (place) => {
+  const buildRoute = async (place, openDetails = false) => {
     setSelected(place);
     setActiveTab("home");
+    setDetailOpen(openDetails);
     const from = userPosition || defaultPosition;
     const to = place.coordinates;
     setRoute(await requestRoute(from, to));
@@ -810,13 +849,13 @@ function App() {
 
       <TopNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {activeTab !== "profile" && <CategoryRail activeCategory={activeCategory} setActiveCategory={setActiveCategory} />}
+      {activeTab === "sections" && <CategoryRail activeCategory={activeCategory} setActiveCategory={setActiveCategory} />}
 
       {activeTab === "profile" ? (
         <ProfilePanel user={user} savedItems={savedItems} onPick={buildRoute} onLogout={logout} />
       ) : (
         <>
-          <SearchPanel value={search} onChange={setSearch} />
+          {activeTab === "sections" && <SearchPanel value={search} onChange={setSearch} />}
           <MapPanel
             items={visiblePlaces}
             selected={selected}
@@ -828,7 +867,11 @@ function App() {
             locationStatus={locationStatus}
             onRequestLocation={askLocation}
           />
-          <RoutePanel selected={selected} route={route} onRoute={buildRoute} />
+          {activeTab === "home" ? (
+            <MapActionDock selected={selected} route={route} onRoute={buildRoute} onShowDetails={() => setDetailOpen(true)} />
+          ) : (
+            <RoutePanel selected={selected} route={route} onRoute={buildRoute} />
+          )}
           {activeTab === "sections" && (
             <>
               <FeaturedStrip items={visiblePlaces} onPick={buildRoute} />
@@ -859,9 +902,9 @@ function App() {
       )}
 
       <DetailCard
-        place={selected}
+        place={detailOpen ? selected : null}
         route={route}
-        onClose={() => setSelected(null)}
+        onClose={() => setDetailOpen(false)}
         onRoute={buildRoute}
         onSave={toggleSaved}
         isSaved={selected ? savedIds.includes(selected.id) : false}
