@@ -13,11 +13,18 @@ import {
 } from "./services/location";
 import { requestRoute } from "./services/routing";
 import { getSavedPlaces, saveSavedPlaces, toggleSavedPlace } from "./services/savedPlaces";
+import { impact, notify, selectionChanged, setupTelegramApp } from "./services/telegramApp";
 import { loadYandexMaps } from "./services/yandexMaps";
 import "./styles.css";
 
 const tg = window.Telegram?.WebApp;
 const defaultPosition = MAPCLAP_CONFIG.defaultPosition;
+const transportModes = {
+  walk: "Пешком",
+  bike: "Велик",
+  scooter: "Самокат",
+  car: "Авто",
+};
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -315,13 +322,14 @@ function AuthScreen({ onAuth }) {
 
 function TopNav({ activeTab, setActiveTab }) {
   return (
-    <nav className="bottom-nav">
+    <nav className="expo-tabs">
       {[
-        ["home", "Карта"],
-        ["sections", "Разделы"],
-        ["profile", "Кабинет"],
-      ].map(([id, title]) => (
+        ["profile", "Кабинет", "♙"],
+        ["home", "Карта", "⌁"],
+        ["sections", "Разделы", "▦"],
+      ].map(([id, title, icon]) => (
         <button key={id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}>
+          <span>{icon}</span>
           {title}
         </button>
       ))}
@@ -364,6 +372,7 @@ function MapPanel({
   const markerRefs = useRef([]);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
+  const [mapMode, setMapMode] = useState("map");
 
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return;
@@ -383,6 +392,7 @@ function MapPanel({
           }
         );
         map.behaviors.enable(["drag", "multiTouch", "scrollZoom"]);
+        map.events.add("click", () => selectionChanged());
         mapRef.current = map;
         setMapReady(true);
       })
@@ -407,7 +417,10 @@ function MapPanel({
           iconColor: categoryColors[place.category] || "#f0b85a",
         }
       );
-      marker.events.add("click", () => onPick(place));
+      marker.events.add("click", () => {
+        impact("light");
+        onPick(place, true);
+      });
       map.geoObjects.add(marker);
       markerRefs.current.push(marker);
     });
@@ -460,7 +473,7 @@ function MapPanel({
             [route.to.lat, route.to.lon],
           ],
           params: {
-            routingMode: "auto",
+            routingMode: route.mode === "car" ? "auto" : "pedestrian",
             avoidTrafficJams: true,
           },
         },
@@ -507,6 +520,22 @@ function MapPanel({
     }
   }, [expanded, selected, route, mapReady]);
 
+  const centerOnUser = () => {
+    const map = mapRef.current;
+    if (!map || !userPosition) return;
+    impact("light");
+    map.setCenter([userPosition.lat, userPosition.lon], 16, { duration: 300 });
+  };
+
+  const toggleMapType = () => {
+    const map = mapRef.current;
+    if (!map || !window.ymaps) return;
+    const next = mapMode === "map" ? "satellite" : "map";
+    setMapMode(next);
+    map.setType(next === "satellite" ? "yandex#satellite" : "yandex#map");
+    selectionChanged();
+  };
+
   return (
     <section className={`map-card ${expanded ? "expanded" : ""}`}>
       <div className="map-stack">
@@ -516,6 +545,10 @@ function MapPanel({
             {locationStatus === "requesting" ? "Ищу тебя..." : "Включить геолокацию"}
           </button>
         )}
+        <div className="map-tools">
+          <button type="button" onClick={centerOnUser}>Я</button>
+          <button type="button" onClick={toggleMapType}>{mapMode === "map" ? "Спутник" : "Карта"}</button>
+        </div>
         {mapError && (
           <div className="map-error">
             <strong>Карта не загрузилась</strong>
@@ -530,15 +563,26 @@ function MapPanel({
   );
 }
 
-function RoutePanel({ selected, route, onRoute }) {
+function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode }) {
   return (
     <section className="route-panel">
       <div>
         <p>Маршрут</p>
-        <h3>{selected ? selected.title : "Выбери место на карте или в подборке"}</h3>
+        <h3>{selected ? `Маршрут до ${selected.title}` : "Выбери место на карте или в подборке"}</h3>
       </div>
       {selected ? (
         <>
+          <div className="transport-tabs">
+            {Object.entries(transportModes).map(([id, label]) => (
+              <button
+                key={id}
+                className={transportMode === id ? "active" : ""}
+                onClick={() => setTransportMode(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="route-stats">
             <span>{route?.durationText || "Считаю"}</span>
             <span>{route?.distanceText || "Маршрут"}</span>
@@ -563,7 +607,7 @@ function MapActionDock({ selected, route, onRoute, onShowDetails }) {
         <h3>{selected ? selected.title : "Выбери точку или раздел"}</h3>
         <span>
           {selected && route
-            ? `${route.durationText} · ${route.distanceText}`
+            ? `${transportModes[route.mode] || "Маршрут"} · ${route.durationText} · ${route.distanceText}`
             : "Клэп покажет маршрут от твоей геопозиции"}
         </span>
       </div>
@@ -573,6 +617,18 @@ function MapActionDock({ selected, route, onRoute, onShowDetails }) {
           <button onClick={onShowDetails}>Карточка</button>
         </div>
       )}
+    </section>
+  );
+}
+
+function ClapNearbyCard() {
+  return (
+    <section className="clap-nearby-card">
+      <Mascot3D />
+      <div>
+        <h2>Клэп рядом ✨</h2>
+        <p>Спроси меня, и я подберу место или мероприятие под твое настроение.</p>
+      </div>
     </section>
   );
 }
@@ -676,7 +732,7 @@ function DetailCard({ place, route, onClose, onRoute, onSave, isSaved }) {
               Маршрут
             </button>
             <button className="ghost-button" onClick={() => onSave(place.id)}>
-              {isSaved ? "Убрано" : "Сохранить"}
+              {isSaved ? "Сохранено" : "Сохранить"}
             </button>
             <a className="ghost-link" href={place.site} target="_blank" rel="noreferrer">
               Сайт места
@@ -702,6 +758,26 @@ function FeaturedStrip({ items, onPick }) {
             <span>{place.title}</span>
           </button>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function ExpoGuideCard({ place, onPick }) {
+  if (!place) return null;
+  return (
+    <section className="expo-guide-card" onClick={() => onPick(place, true)}>
+      <img src={place.imageUrl} alt={place.title} />
+      <div className="expo-guide-content">
+        <p>Клэп показывает подробнее</p>
+        <h2>{place.title}</h2>
+        <span>{place.description}</span>
+        <div className="mini-gallery">
+          {[place.imageUrl, place.imageUrl, place.imageUrl].map((src, index) => (
+            <img key={`${place.id}-mini-${index}`} src={src} alt="" />
+          ))}
+        </div>
+        <small>{place.address} · {place.price} · {place.schedule}</small>
       </div>
     </section>
   );
@@ -753,7 +829,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
   const [activeCategory, setActiveCategory] = useState("all");
-  const [selected, setSelected] = useState(null);
+  const [selected, setSelected] = useState(places[0]);
   const [route, setRoute] = useState(null);
   const [routeProgress, setRouteProgress] = useState(0);
   const [userPosition, setUserPosition] = useState(defaultPosition);
@@ -761,10 +837,10 @@ function App() {
   const [savedIds, setSavedIds] = useState([]);
   const [search, setSearch] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
+  const [transportMode, setTransportMode] = useState("walk");
 
   useEffect(() => {
-    tg?.ready();
-    tg?.expand();
+    setupTelegramApp();
     document.documentElement.style.setProperty("--tg-bg", tg?.themeParams?.bg_color || "#12100d");
   }, []);
 
@@ -792,6 +868,11 @@ function App() {
     return () => window.clearInterval(timer);
   }, [route]);
 
+  useEffect(() => {
+    if (!user || !selected || route) return;
+    requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then(setRoute);
+  }, [user, selected, route, userPosition, transportMode]);
+
   const visiblePlaces = useMemo(() => {
     const byCategory = activeCategory === "all" ? places : places.filter((place) => place.category === activeCategory);
     const query = search.trim().toLowerCase();
@@ -804,12 +885,15 @@ function App() {
   const savedItems = useMemo(() => places.filter((place) => savedIds.includes(place.id)), [savedIds]);
 
   const buildRoute = async (place, openDetails = false) => {
+    selectionChanged();
     setSelected(place);
     setActiveTab("home");
     setDetailOpen(openDetails);
     const from = userPosition || defaultPosition;
     const to = place.coordinates;
-    setRoute(await requestRoute(from, to));
+    const nextRoute = await requestRoute(from, to, transportMode);
+    setRoute(nextRoute);
+    notify("success");
     setRouteProgress(0);
   };
 
@@ -824,6 +908,7 @@ function App() {
     setSavedIds((current) => {
       const next = toggleSavedPlace(current, placeId);
       saveSavedPlaces(next);
+      impact("medium");
       return next;
     });
   };
@@ -835,47 +920,62 @@ function App() {
     });
   };
 
+  useEffect(() => {
+    if (!user || !selected) return;
+    requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then((nextRoute) => {
+      setRoute(nextRoute);
+      setRouteProgress(0);
+    });
+  }, [transportMode]);
+
   if (!user) return <AuthScreen onAuth={setUser} />;
 
   return (
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <p>MapClap</p>
-          <h1>Куда пойдем?</h1>
+          <h1>MapClap</h1>
+          <p>Клэп подбирает интересные места в вашем городе и рядом с вами.</p>
         </div>
-        <Mascot3D small />
+        <div className="header-mascot">
+          <span>{user.city || "Москва"}</span>
+          <Mascot3D small />
+        </div>
       </header>
 
       <TopNav activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {activeTab === "sections" && <CategoryRail activeCategory={activeCategory} setActiveCategory={setActiveCategory} />}
 
       {activeTab === "profile" ? (
         <ProfilePanel user={user} savedItems={savedItems} onPick={buildRoute} onLogout={logout} />
       ) : (
         <>
-          {activeTab === "sections" && <SearchPanel value={search} onChange={setSearch} />}
-          <MapPanel
-            items={visiblePlaces}
-            selected={selected}
-            userPosition={userPosition}
-            route={route}
-            routeProgress={routeProgress}
-            onPick={buildRoute}
-            expanded={activeTab === "home"}
-            locationStatus={locationStatus}
-            onRequestLocation={askLocation}
-          />
-          {activeTab === "home" ? (
-            <MapActionDock selected={selected} route={route} onRoute={buildRoute} onShowDetails={() => setDetailOpen(true)} />
-          ) : (
-            <RoutePanel selected={selected} route={route} onRoute={buildRoute} />
+          {activeTab === "home" && (
+            <>
+              <MapPanel
+                items={visiblePlaces}
+                selected={selected}
+                userPosition={userPosition}
+                route={route}
+                routeProgress={routeProgress}
+                onPick={buildRoute}
+                expanded
+                locationStatus={locationStatus}
+                onRequestLocation={askLocation}
+              />
+              <MapActionDock selected={selected} route={route} onRoute={buildRoute} onShowDetails={() => setDetailOpen(true)} />
+              <ClapNearbyCard />
+              <RoutePanel
+                selected={selected}
+                route={route}
+                onRoute={buildRoute}
+                transportMode={transportMode}
+                setTransportMode={setTransportMode}
+              />
+              <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
+            </>
           )}
           {activeTab === "sections" && (
             <>
-              <FeaturedStrip items={visiblePlaces} onPick={buildRoute} />
-              <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
               <section className="section-grid horizontal">
                 {Object.entries(categoryLabels)
                   .filter(([id]) => id !== "all")
@@ -891,6 +991,12 @@ function App() {
                     </button>
                   ))}
               </section>
+              <ExpoGuideCard place={visiblePlaces[0] || places[0]} onPick={buildRoute} />
+              <div className="section-heading-row">
+                <h2>Москва от Клэпа</h2>
+                <span>{places.length} мест</span>
+              </div>
+              <SearchPanel value={search} onChange={setSearch} />
               <section className="places-list horizontal">
                 {visiblePlaces.map((place) => (
                   <PlaceCard key={place.id} place={place} onPick={buildRoute} saved={savedIds.includes(place.id)} />

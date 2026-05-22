@@ -29,18 +29,32 @@ export function buildDemoRoute(from, to) {
   };
 }
 
-export async function requestRoute(from, to) {
+export async function requestRoute(from, to, mode = "walk") {
   try {
     const response = await fetch("/api/route", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to }),
+      body: JSON.stringify({ from, to, mode }),
     });
     if (!response.ok) throw new Error("route failed");
     const data = await response.json();
     const route = data.points?.length ? data : buildDemoRoute(from, to);
-    return { ...route, from, to };
+    return normalizeRoute(route, from, to, mode);
   } catch {
-    return { ...buildDemoRoute(from, to), from, to };
+    return normalizeRoute(buildDemoRoute(from, to), from, to, mode);
   }
+}
+
+function normalizeRoute(route, from, to, mode) {
+  const points = route.points?.length ? route.points : buildDemoRoute(from, to).points;
+  return {
+    ...route,
+    points,
+    from,
+    to,
+    mode,
+    distanceText: route.distanceText || buildDemoRoute(from, to).distanceText,
+    durationText: route.durationText || buildDemoRoute(from, to).durationText,
+    source: route.source || "MapClap",
+  };
 }
