@@ -2,7 +2,14 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { categoryColors, categoryLabels, places } from "./data/places";
 import { MAPCLAP_CONFIG } from "./config/mapclap";
-import { clearUser, getStoredUser, saveUser, watchUserLocation } from "./services/location";
+import {
+  clearUser,
+  getStoredUser,
+  openTelegramLocationSettings,
+  requestTelegramLocation,
+  saveUser,
+  watchUserLocation,
+} from "./services/location";
 import { requestRoute } from "./services/routing";
 import { loadYandexMaps } from "./services/yandexMaps";
 import "./styles.css";
@@ -14,9 +21,9 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function CorgiFace({ small = false }) {
+function CorgiFace({ small = false, calm = false }) {
   return (
-    <div className={`corgi-face ${small ? "small" : ""}`} aria-hidden="true">
+    <div className={`corgi-face ${small ? "small" : ""} ${calm ? "calm" : ""}`} aria-hidden="true">
       <div className="ear left" />
       <div className="ear right" />
       <div className="head">
@@ -227,7 +234,17 @@ function CategoryRail({ activeCategory, setActiveCategory }) {
   );
 }
 
-function MapPanel({ items, selected, userPosition, route, routeProgress, onPick, expanded }) {
+function MapPanel({
+  items,
+  selected,
+  userPosition,
+  route,
+  routeProgress,
+  onPick,
+  expanded,
+  locationStatus,
+  onRequestLocation,
+}) {
   const mapNode = useRef(null);
   const mapRef = useRef(null);
   const routeRef = useRef(null);
@@ -380,6 +397,11 @@ function MapPanel({ items, selected, userPosition, route, routeProgress, onPick,
     <section className={`map-card ${expanded ? "expanded" : ""}`}>
       <div className="map-stack">
         <div ref={mapNode} className="real-map" />
+        {locationStatus !== "granted" && (
+          <button type="button" className="location-request" onClick={onRequestLocation}>
+            {locationStatus === "requesting" ? "Ищу тебя..." : "Включить геолокацию"}
+          </button>
+        )}
         {mapError && (
           <div className="map-error">
             <strong>Карта не загрузилась</strong>
@@ -517,6 +539,25 @@ function DetailCard({ place, route, onClose, onRoute }) {
   );
 }
 
+function FeaturedStrip({ items, onPick }) {
+  return (
+    <section className="featured-strip">
+      <div className="section-title">
+        <p>Подборка Клэпа</p>
+        <h2>Лучшее рядом</h2>
+      </div>
+      <div className="featured-scroll">
+        {items.slice(0, 8).map((place) => (
+          <button key={place.id} className="featured-card" onClick={() => onPick(place)}>
+            <img src={place.imageUrl} alt={place.title} loading="lazy" />
+            <span>{place.title}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ProfilePanel({ user, onLogout }) {
   return (
     <section className="profile-panel">
@@ -541,6 +582,7 @@ function App() {
   const [route, setRoute] = useState(null);
   const [routeProgress, setRouteProgress] = useState(0);
   const [userPosition, setUserPosition] = useState(defaultPosition);
+  const [locationStatus, setLocationStatus] = useState("idle");
 
   useEffect(() => {
     tg?.ready();
@@ -556,6 +598,7 @@ function App() {
   useEffect(() => {
     if (!user) return;
     saveUser(user);
+    requestTelegramLocation(setUserPosition, setLocationStatus);
   }, [user]);
 
   useEffect(() => {
@@ -591,6 +634,13 @@ function App() {
     setRoute(null);
   };
 
+  const askLocation = () => {
+    requestTelegramLocation(setUserPosition, (status) => {
+      setLocationStatus(status);
+      if (status === "denied") openTelegramLocationSettings();
+    });
+  };
+
   if (!user) return <AuthScreen onAuth={setUser} />;
 
   return (
@@ -600,7 +650,7 @@ function App() {
           <p>MapClap</p>
           <h1>Куда пойдем?</h1>
         </div>
-        <CorgiFace small />
+        <CorgiFace small calm />
       </header>
 
       <TopNav activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -619,8 +669,11 @@ function App() {
             routeProgress={routeProgress}
             onPick={buildRoute}
             expanded={activeTab === "home"}
+            locationStatus={locationStatus}
+            onRequestLocation={askLocation}
           />
           <RoutePanel selected={selected} route={route} onRoute={buildRoute} />
+          <FeaturedStrip items={visiblePlaces} onPick={buildRoute} />
           <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
           {activeTab === "sections" && (
             <section className="section-grid">

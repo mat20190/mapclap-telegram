@@ -319,6 +319,21 @@ button {
   pointer-events: none;
 }
 
+.location-request {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  z-index: 5;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgba(18, 16, 13, 0.88);
+  color: var(--text);
+  border: 1px solid rgba(255, 248, 235, 0.18);
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
 .map-error {
   position: absolute;
   inset: 14px;
@@ -375,6 +390,77 @@ button {
 .advisor {
   padding: 14px;
   margin-bottom: 12px;
+}
+
+.featured-strip {
+  margin: 0 0 12px;
+}
+
+.section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  padding: 2px 2px 10px;
+}
+
+.section-title p,
+.section-title h2 {
+  margin: 0;
+}
+
+.section-title p {
+  color: var(--gold);
+  font-weight: 900;
+}
+
+.section-title h2 {
+  font-size: 18px;
+}
+
+.featured-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.featured-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.featured-card {
+  position: relative;
+  flex: 0 0 176px;
+  height: 116px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #211b15;
+  color: white;
+  scroll-snap-align: start;
+}
+
+.featured-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.78) saturate(1.04);
+  transition: transform 0.22s ease;
+}
+
+.featured-card:active img {
+  transform: scale(1.05);
+}
+
+.featured-card span {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  font-weight: 900;
+  text-align: left;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
 }
 
 .advisor h3,
@@ -537,6 +623,7 @@ button {
   align-items: end;
   background: rgba(0, 0, 0, 0.48);
   backdrop-filter: blur(8px);
+  animation: fade-in 0.18s ease-out;
 }
 
 .detail-card {
@@ -546,6 +633,7 @@ button {
   border-radius: 28px 28px 0 0;
   background: #17130f;
   border: 1px solid var(--line);
+  animation: sheet-up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .detail-card > img {
@@ -620,6 +708,10 @@ button {
   width: 190px;
   height: 214px;
   animation: corgi-breathe 3.4s ease-in-out infinite;
+}
+
+.corgi-face.calm {
+  transform: rotate(-3deg);
 }
 
 .corgi-face.small {
@@ -914,6 +1006,24 @@ button {
   }
   50% {
     transform: translateY(4px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(42px);
+  }
+  to {
+    transform: translateY(0);
   }
 }
 
