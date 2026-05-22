@@ -10,7 +10,14 @@ function distanceKm(a, b) {
   return radius * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-function fallbackRoute(from, to) {
+const modeSpeed = {
+  walk: 4.2,
+  bike: 13,
+  scooter: 10,
+  car: 22,
+};
+
+function fallbackRoute(from, to, mode = "walk") {
   const points = [];
   for (let i = 0; i <= 22; i += 1) {
     const t = i / 22;
@@ -24,8 +31,9 @@ function fallbackRoute(from, to) {
   return {
     points,
     distanceText: `${km.toFixed(1)} км`,
-    durationText: `${Math.max(6, Math.round((km / 4.2) * 60))} мин`,
+    durationText: `${Math.max(4, Math.round((km / (modeSpeed[mode] || 4.2)) * 60))} мин`,
     source: "MapClap",
+    mode,
   };
 }
 
@@ -36,7 +44,7 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { from, to } = request.body || {};
+    const { from, to, mode = "walk" } = request.body || {};
     if (!from?.lat || !from?.lon || !to?.lat || !to?.lon) {
       response.status(400).json({ error: "Missing coordinates" });
       return;
@@ -48,7 +56,7 @@ export default async function handler(request, response) {
       const url = new URL("https://api.routing.yandex.net/v2/route");
       url.searchParams.set("apikey", apiKey);
       url.searchParams.set("waypoints", `${from.lat},${from.lon}|${to.lat},${to.lon}`);
-      url.searchParams.set("mode", "walking");
+      url.searchParams.set("mode", mode === "car" ? "driving" : "walking");
 
       const routeResponse = await fetch(url.toString());
       if (routeResponse.ok) {
@@ -62,19 +70,20 @@ export default async function handler(request, response) {
           });
           response.status(200).json({
             points,
-            distanceText: route?.distance?.text || fallbackRoute(from, to).distanceText,
-            durationText: route?.duration?.text || fallbackRoute(from, to).durationText,
+            distanceText: route?.distance?.text || fallbackRoute(from, to, mode).distanceText,
+            durationText: route?.duration?.text || fallbackRoute(from, to, mode).durationText,
             source: "Yandex Routing API",
+            mode,
           });
           return;
         }
       }
     }
 
-    response.status(200).json(fallbackRoute(from, to));
+    response.status(200).json(fallbackRoute(from, to, mode));
   } catch (error) {
     const from = request.body?.from || { lat: 55.741, lon: 37.653 };
     const to = request.body?.to || { lat: 55.744, lon: 37.655 };
-    response.status(200).json(fallbackRoute(from, to));
+    response.status(200).json(fallbackRoute(from, to, request.body?.mode || "walk"));
   }
 }

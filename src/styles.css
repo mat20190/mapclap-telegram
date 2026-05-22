@@ -143,6 +143,48 @@ button {
   color: var(--muted);
 }
 
+.onboarding-slide {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  margin: 14px 0 4px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+}
+
+.onboarding-slide strong {
+  color: #fff8eb;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.onboarding-slide p {
+  margin: 0;
+  color: #cfc2b1;
+  line-height: 1.35;
+}
+
+.slide-dots {
+  display: flex;
+  gap: 7px;
+  padding-top: 4px;
+}
+
+.slide-dots button {
+  width: 8px;
+  height: 8px;
+  min-height: 8px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.slide-dots button.active {
+  width: 28px;
+  background: #f1c66d;
+}
+
 .onboarding-grid {
   display: grid;
   gap: 8px;
@@ -183,6 +225,19 @@ button {
 }
 
 .mascot-model.small {
+  width: 78px;
+  height: 82px;
+}
+
+.mascot-model-wrap {
+  width: 210px;
+  height: 230px;
+  display: grid;
+  place-items: center;
+  animation: corgi-breathe 3.4s ease-in-out infinite;
+}
+
+.mascot-model-wrap.small {
   width: 78px;
   height: 82px;
 }
@@ -1456,6 +1511,47 @@ button {
   border: 1px solid var(--line);
   border-radius: 20px;
   background: #1d1813;
+}
+
+.mascot-status-card {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 210px;
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #1d1813;
+}
+
+.mascot-status-card .mascot-model,
+.mascot-status-card .corgi-face {
+  justify-self: center;
+}
+
+.mascot-status-card p,
+.mascot-status-card h2,
+.mascot-status-card span {
+  margin: 0;
+}
+
+.mascot-status-card p {
+  color: var(--gold);
+  font-weight: 950;
+}
+
+.mascot-status-card h2 {
+  margin: 6px 0 10px;
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.mascot-status-card span {
+  color: #cfc2b1;
+  font-size: 19px;
+  line-height: 1.35;
 }
 
 .clap-nearby-card .mascot-model,

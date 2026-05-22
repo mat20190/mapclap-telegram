@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { onboardingCards, profileInterests, quickPrompts } from "./data/appContent";
+import { onboardingCards, onboardingSlides, profileInterests, quickPrompts } from "./data/appContent";
 import { categoryColors, categoryLabels, places } from "./data/places";
 import { MAPCLAP_CONFIG } from "./config/mapclap";
 import {
@@ -87,21 +87,23 @@ function Mascot3D({ small = false }) {
   if (!modelSrc) return <CorgiFace small={small} calm />;
 
   return (
-    <model-viewer
-      className={`mascot-model ${small ? "small" : ""}`}
-      src={modelSrc}
-      camera-controls={false}
-      auto-rotate
-      auto-rotate-delay="0"
-      rotation-per-second="18deg"
-      disable-zoom
-      shadow-intensity="0.45"
-      exposure="1.05"
-      camera-orbit="10deg 78deg 2.6m"
-      field-of-view="28deg"
-      interaction-prompt="none"
-      aria-label="Клэп"
-    />
+    <div className={`mascot-model-wrap ${small ? "small" : ""}`}>
+      <model-viewer
+        className={`mascot-model ${small ? "small" : ""}`}
+        src={modelSrc}
+        camera-controls={false}
+        auto-rotate
+        auto-rotate-delay="0"
+        rotation-per-second="18deg"
+        disable-zoom
+        shadow-intensity="0.45"
+        exposure="1.05"
+        camera-orbit="10deg 78deg 2.6m"
+        field-of-view="28deg"
+        interaction-prompt="none"
+        aria-label="Клэп"
+      />
+    </div>
   );
 }
 
@@ -178,6 +180,7 @@ function pickPlaceByQuery(query, items) {
 function AuthScreen({ onAuth }) {
   const [stage, setStage] = useState("intro");
   const [mode, setMode] = useState("register");
+  const [slide, setSlide] = useState(0);
   const [form, setForm] = useState({
     name: "",
     surname: "",
@@ -201,6 +204,7 @@ function AuthScreen({ onAuth }) {
   };
 
   if (stage === "intro") {
+    const currentSlide = onboardingSlides[slide];
     return (
       <main className="auth-shell">
         <section className="hero-card">
@@ -215,9 +219,20 @@ function AuthScreen({ onAuth }) {
             <Mascot3D />
           </div>
           <h1>Город под твое настроение</h1>
-          <p className="intro-copy">
-            Клэп подберет места, построит маршрут и поможет быстро понять, куда идти прямо сейчас.
-          </p>
+          <div className="onboarding-slide">
+            <strong>{currentSlide.title}</strong>
+            <p>{currentSlide.text}</p>
+            <div className="slide-dots">
+              {onboardingSlides.map((item, index) => (
+                <button
+                  key={item.title}
+                  className={slide === index ? "active" : ""}
+                  onClick={() => setSlide(index)}
+                  aria-label={item.title}
+                />
+              ))}
+            </div>
+          </div>
           <div className="onboarding-grid">
             {onboardingCards.map((card) => (
               <article key={card.title}>
@@ -825,6 +840,23 @@ function ProfilePanel({ user, savedItems, onPick, onLogout }) {
   );
 }
 
+function MascotStatusCard({ selected, route }) {
+  return (
+    <section className="mascot-status-card">
+      <Mascot3D />
+      <div>
+        <p>Клэп на связи</p>
+        <h2>{selected ? `Веду к ${selected.title}` : "Готов подобрать место"}</h2>
+        <span>
+          {selected && route
+            ? `${route.durationText}, ${route.distanceText}. Можно открыть карточку или сменить транспорт.`
+            : "Открой разделы или напиши запрос, а я соберу план."}
+        </span>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("home");
@@ -963,7 +995,7 @@ function App() {
                 onRequestLocation={askLocation}
               />
               <MapActionDock selected={selected} route={route} onRoute={buildRoute} onShowDetails={() => setDetailOpen(true)} />
-              <ClapNearbyCard />
+              <MascotStatusCard selected={selected} route={route} />
               <RoutePanel
                 selected={selected}
                 route={route}
