@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { onboardingCards, onboardingSlides, profileInterests, quickPrompts } from "./data/appContent";
 import { categoryColors, categoryLabels, places } from "./data/places";
+import { uiText } from "./data/uiText";
 import { MAPCLAP_CONFIG } from "./config/mapclap";
 import {
   clearUser,
@@ -19,12 +20,7 @@ import "./styles.css";
 
 const tg = window.Telegram?.WebApp;
 const defaultPosition = MAPCLAP_CONFIG.defaultPosition;
-const transportModes = {
-  walk: "Пешком",
-  bike: "Велик",
-  scooter: "Самокат",
-  car: "Авто",
-};
+const transportModes = uiText.transport;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -339,9 +335,9 @@ function TopNav({ activeTab, setActiveTab }) {
   return (
     <nav className="expo-tabs">
       {[
-        ["profile", "Кабинет", "♙"],
-        ["home", "Карта", "⌁"],
-        ["sections", "Разделы", "▦"],
+        ["profile", uiText.tabs.profile, "♙"],
+        ["home", uiText.tabs.map, "⌁"],
+        ["sections", uiText.tabs.sections, "▦"],
       ].map(([id, title, icon]) => (
         <button key={id} className={activeTab === id ? "active" : ""} onClick={() => setActiveTab(id)}>
           <span>{icon}</span>
@@ -388,6 +384,7 @@ function MapPanel({
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [mapMode, setMapMode] = useState("map");
+  const previousUserPositionRef = useRef(userPosition);
 
   useEffect(() => {
     if (!mapNode.current || mapRef.current) return;
@@ -464,13 +461,14 @@ function MapPanel({
 
   useEffect(() => {
     if (!userPlacemarkRef.current) return;
-    const movingPoint = route?.points?.length
-      ? route.points[Math.min(route.points.length - 1, Math.floor(routeProgress * (route.points.length - 1)))]
-      : userPosition;
-    if (movingPoint) {
-      userPlacemarkRef.current.geometry.setCoordinates([movingPoint.lat, movingPoint.lon]);
+    if (userPosition) {
+      userPlacemarkRef.current.geometry.setCoordinates([userPosition.lat, userPosition.lon]);
     }
-  }, [route, routeProgress, userPosition]);
+  }, [userPosition]);
+
+  useEffect(() => {
+    previousUserPositionRef.current = userPosition;
+  }, [userPosition]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -557,21 +555,23 @@ function MapPanel({
         <div ref={mapNode} className="real-map" />
         {locationStatus !== "granted" && (
           <button type="button" className="location-request" onClick={onRequestLocation}>
-            {locationStatus === "requesting" ? "Ищу тебя..." : "Включить геолокацию"}
+            {locationStatus === "requesting" ? uiText.map.searching : uiText.map.enableLocation}
           </button>
         )}
         <div className="map-tools">
-          <button type="button" onClick={centerOnUser}>Я</button>
-          <button type="button" onClick={toggleMapType}>{mapMode === "map" ? "Спутник" : "Карта"}</button>
+          <button type="button" onClick={centerOnUser}>{uiText.map.userButton}</button>
+          <button type="button" onClick={toggleMapType}>{mapMode === "map" ? uiText.map.satellite : uiText.map.map}</button>
         </div>
         {mapError && (
           <div className="map-error">
-            <strong>Карта не загрузилась</strong>
-            <span>Проверь ключ Yandex Maps в Vercel: VITE_YANDEX_MAPS_API_KEY</span>
+            <strong>{uiText.map.loadErrorTitle}</strong>
+            <span>{uiText.map.loadErrorText}</span>
           </div>
         )}
         <div className="map-overlay">
-          <span className="map-hint">Клэп стартует от твоей геопозиции</span>
+          <span className="map-hint">
+            {userPosition?.accuracy ? `${uiText.map.accuracy}: ${Math.round(userPosition.accuracy)} м` : uiText.map.followsUser}
+          </span>
         </div>
       </div>
     </section>
@@ -582,8 +582,8 @@ function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode 
   return (
     <section className="route-panel">
       <div>
-        <p>Маршрут</p>
-        <h3>{selected ? `Маршрут до ${selected.title}` : "Выбери место на карте или в подборке"}</h3>
+        <p>{uiText.route.title}</p>
+        <h3>{selected ? `${uiText.route.title} до ${selected.title}` : uiText.route.choosePlace}</h3>
       </div>
       {selected ? (
         <>
@@ -599,12 +599,12 @@ function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode 
             ))}
           </div>
           <div className="route-stats">
-            <span>{route?.durationText || "Считаю"}</span>
-            <span>{route?.distanceText || "Маршрут"}</span>
+            <span>{route?.durationText || uiText.route.updating}</span>
+            <span>{route?.distanceText || uiText.route.title}</span>
             <span>{route?.source || "MapClap"}</span>
           </div>
           <button className="primary-button compact" onClick={() => onRoute(selected)}>
-            Построить маршрут
+            {uiText.route.build}
           </button>
         </>
       ) : (
@@ -614,23 +614,36 @@ function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode 
   );
 }
 
-function MapActionDock({ selected, route, onRoute, onShowDetails }) {
+function MapActionDock({ selected, route, onRoute, onShowDetails, transportMode, setTransportMode }) {
   return (
     <section className="map-action-dock">
       <div>
-        <p>{selected ? "Выбрано место" : "Карта MapClap"}</p>
-        <h3>{selected ? selected.title : "Выбери точку или раздел"}</h3>
+        <p>{selected ? uiText.route.selectedPlace : uiText.route.mapTitle}</p>
+        <h3>{selected ? selected.title : uiText.route.choosePoint}</h3>
         <span>
           {selected && route
             ? `${transportModes[route.mode] || "Маршрут"} · ${route.durationText} · ${route.distanceText}`
-            : "Клэп покажет маршрут от твоей геопозиции"}
+            : uiText.route.noRoute}
         </span>
       </div>
       {selected && (
-        <div className="map-action-buttons">
-          <button onClick={() => onRoute(selected)}>Маршрут</button>
-          <button onClick={onShowDetails}>Карточка</button>
-        </div>
+        <>
+          <div className="transport-tabs compact">
+            {Object.entries(transportModes).map(([id, label]) => (
+              <button
+                key={id}
+                className={transportMode === id ? "active" : ""}
+                onClick={() => setTransportMode(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="map-action-buttons">
+            <button onClick={() => onRoute(selected)}>{uiText.route.update}</button>
+            <button onClick={onShowDetails}>{uiText.route.card}</button>
+          </div>
+        </>
       )}
     </section>
   );
@@ -960,6 +973,17 @@ function App() {
     });
   }, [transportMode]);
 
+  useEffect(() => {
+    if (!user || !selected || locationStatus !== "granted") return;
+    const timer = window.setTimeout(() => {
+      requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then((nextRoute) => {
+        setRoute(nextRoute);
+        setRouteProgress(0);
+      });
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [userPosition?.lat, userPosition?.lon]);
+
   if (!user) return <AuthScreen onAuth={setUser} />;
 
   return (
@@ -967,10 +991,10 @@ function App() {
       <header className="app-header">
         <div>
           <h1>MapClap</h1>
-          <p>Клэп подбирает интересные места в вашем городе и рядом с вами.</p>
+          <p>{uiText.header.subtitle}</p>
         </div>
         <div className="header-mascot">
-          <span>{user.city || "Москва"}</span>
+          <span>{user.city || uiText.auth.defaultCity}</span>
           <Mascot3D small />
         </div>
       </header>
@@ -979,63 +1003,58 @@ function App() {
 
       {activeTab === "profile" ? (
         <ProfilePanel user={user} savedItems={savedItems} onPick={buildRoute} onLogout={logout} />
+      ) : activeTab === "home" ? (
+        <>
+          <MapPanel
+            items={visiblePlaces}
+            selected={selected}
+            userPosition={userPosition}
+            route={route}
+            routeProgress={routeProgress}
+            onPick={buildRoute}
+            expanded
+            locationStatus={locationStatus}
+            onRequestLocation={askLocation}
+          />
+          <MapActionDock
+            selected={selected}
+            route={route}
+            onRoute={buildRoute}
+            onShowDetails={() => setDetailOpen(true)}
+            transportMode={transportMode}
+            setTransportMode={setTransportMode}
+          />
+        </>
       ) : (
         <>
-          {activeTab === "home" && (
-            <>
-              <MapPanel
-                items={visiblePlaces}
-                selected={selected}
-                userPosition={userPosition}
-                route={route}
-                routeProgress={routeProgress}
-                onPick={buildRoute}
-                expanded
-                locationStatus={locationStatus}
-                onRequestLocation={askLocation}
-              />
-              <MapActionDock selected={selected} route={route} onRoute={buildRoute} onShowDetails={() => setDetailOpen(true)} />
-              <MascotStatusCard selected={selected} route={route} />
-              <RoutePanel
-                selected={selected}
-                route={route}
-                onRoute={buildRoute}
-                transportMode={transportMode}
-                setTransportMode={setTransportMode}
-              />
-              <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
-            </>
-          )}
-          {activeTab === "sections" && (
-            <>
-              <section className="section-grid horizontal">
-                {Object.entries(categoryLabels)
-                  .filter(([id]) => id !== "all")
-                  .map(([id, title]) => (
-                    <button
-                      key={id}
-                      className="section-tile"
-                      onClick={() => setActiveCategory(id)}
-                      style={{ "--accent": categoryColors[id] }}
-                    >
-                      <span>{title}</span>
-                      <small>{places.filter((place) => place.category === id).length} мест</small>
-                    </button>
-                  ))}
-              </section>
-              <ExpoGuideCard place={visiblePlaces[0] || places[0]} onPick={buildRoute} />
-              <div className="section-heading-row">
-                <h2>Москва от Клэпа</h2>
-                <span>{places.length} мест</span>
-              </div>
-              <SearchPanel value={search} onChange={setSearch} />
-              <section className="places-list horizontal">
-                {visiblePlaces.map((place) => (
-                  <PlaceCard key={place.id} place={place} onPick={buildRoute} saved={savedIds.includes(place.id)} />
-                ))}
-              </section>
-            </>
-          )}
+          <MascotStatusCard selected={selected} route={route} />
+          <AdvisorChat items={visiblePlaces} onPick={buildRoute} />
+          <section className="section-grid horizontal">
+            {Object.entries(categoryLabels)
+              .filter(([id]) => id !== "all")
+              .map(([id, title]) => (
+                <button
+                  key={id}
+                  className="section-tile"
+                  onClick={() => setActiveCategory(id)}
+                  style={{ "--accent": categoryColors[id] }}
+                >
+                  <span>{title}</span>
+                  <small>{places.filter((place) => place.category === id).length} мест</small>
+                </button>
+              ))}
+          </section>
+          <ExpoGuideCard place={visiblePlaces[0] || places[0]} onPick={buildRoute} />
+          <div className="section-heading-row">
+            <h2>Москва от Клэпа</h2>
+            <span>{places.length} мест</span>
+          </div>
+          <SearchPanel value={search} onChange={setSearch} />
+          <section className="places-list horizontal">
+            {visiblePlaces.map((place) => (
+              <PlaceCard key={place.id} place={place} onPick={buildRoute} saved={savedIds.includes(place.id)} />
+            ))}
+          </section>
         </>
       )}
 

@@ -28,6 +28,9 @@ export function watchUserLocation(onLocation) {
       onLocation({
         lat: position.coords.latitude,
         lon: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        heading: position.coords.heading,
+        speed: position.coords.speed,
       });
     },
     () => {
@@ -57,6 +60,7 @@ export function requestTelegramLocation(onLocation, onStatus = () => {}) {
           onLocation({
             lat: location.latitude,
             lon: location.longitude,
+            accuracy: location.horizontal_accuracy,
           });
           onStatus("granted");
           return;
@@ -92,6 +96,9 @@ function requestBrowserLocation(onLocation, onStatus) {
       onLocation({
         lat: position.coords.latitude,
         lon: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        heading: position.coords.heading,
+        speed: position.coords.speed,
       });
       onStatus("granted");
     },

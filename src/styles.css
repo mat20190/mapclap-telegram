@@ -229,6 +229,17 @@ button {
   height: 82px;
 }
 
+.header-mascot .mascot-model-wrap.small,
+.header-mascot .corgi-face.small {
+  width: 92px;
+  height: 96px;
+}
+
+.mascot-status-card .mascot-model-wrap,
+.mascot-status-card .corgi-face {
+  transform: translateY(6px);
+}
+
 .mascot-model-wrap {
   width: 210px;
   height: 230px;
@@ -623,6 +634,16 @@ button {
 .transport-tabs button.active {
   background: #f1c66d;
   color: #21160c;
+}
+
+.transport-tabs.compact {
+  padding: 0;
+}
+
+.transport-tabs.compact button {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 15px;
 }
 
 .route-stats {
