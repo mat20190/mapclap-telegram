@@ -211,22 +211,22 @@ button {
 }
 
 .intro-mascot {
-  height: 238px;
+  height: 188px;
   display: grid;
   place-items: end center;
   overflow: hidden;
 }
 
 .mascot-model {
-  width: 210px;
-  height: 230px;
+  width: 168px;
+  height: 184px;
   display: block;
   --poster-color: transparent;
 }
 
 .mascot-model.small {
-  width: 78px;
-  height: 82px;
+  width: 64px;
+  height: 70px;
 }
 
 .header-mascot .mascot-model-wrap.small,
@@ -241,16 +241,16 @@ button {
 }
 
 .mascot-model-wrap {
-  width: 210px;
-  height: 230px;
+  width: 168px;
+  height: 184px;
   display: grid;
   place-items: center;
   animation: corgi-breathe 3.4s ease-in-out infinite;
 }
 
 .mascot-model-wrap.small {
-  width: 78px;
-  height: 82px;
+  width: 64px;
+  height: 70px;
 }
 
 .hero-card h1,
@@ -380,6 +380,10 @@ button {
   padding: 4px 2px 14px;
 }
 
+.app-header.compact {
+  display: block;
+}
+
 .bottom-nav {
   position: fixed;
   left: 50%;
@@ -434,6 +438,52 @@ button {
   color: var(--text);
   padding: 0 14px;
   outline: none;
+}
+
+.add-place-panel {
+  margin: 0 0 14px;
+}
+
+.add-place-toggle {
+  width: 100%;
+  min-height: 52px;
+  border-radius: 18px;
+  background: #f1c66d;
+  color: #21160c;
+  font-weight: 950;
+}
+
+.add-place-form {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.add-place-form input,
+.add-place-form select,
+.add-place-form textarea {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+}
+
+.add-place-form select option {
+  color: #1d1914;
+}
+
+.add-place-form textarea {
+  min-height: 86px;
+  padding: 12px;
+  resize: vertical;
 }
 
 .map-card {
@@ -1594,10 +1644,10 @@ button {
 
 .mascot-status-card {
   display: grid;
-  grid-template-columns: 1fr 1.35fr;
+  grid-template-columns: 112px 1fr;
   align-items: center;
   gap: 14px;
-  min-height: 210px;
+  min-height: 156px;
   padding: 18px;
   margin-bottom: 18px;
   border: 1px solid var(--line);
@@ -1623,13 +1673,13 @@ button {
 
 .mascot-status-card h2 {
   margin: 6px 0 10px;
-  font-size: 28px;
+  font-size: 24px;
   line-height: 1.08;
 }
 
 .mascot-status-card span {
   color: #cfc2b1;
-  font-size: 19px;
+  font-size: 17px;
   line-height: 1.35;
 }
 

@@ -14,6 +14,7 @@ import {
 } from "./services/location";
 import { requestRoute } from "./services/routing";
 import { getSavedPlaces, saveSavedPlaces, toggleSavedPlace } from "./services/savedPlaces";
+import { createCustomPlace, getCustomPlaces, saveCustomPlaces } from "./services/customPlaces";
 import { impact, notify, selectionChanged, setupTelegramApp } from "./services/telegramApp";
 import { loadYandexMaps } from "./services/yandexMaps";
 import "./styles.css";
@@ -88,14 +89,11 @@ function Mascot3D({ small = false }) {
         className={`mascot-model ${small ? "small" : ""}`}
         src={modelSrc}
         camera-controls={false}
-        auto-rotate
-        auto-rotate-delay="0"
-        rotation-per-second="18deg"
         disable-zoom
         shadow-intensity="0.45"
         exposure="1.05"
-        camera-orbit="10deg 78deg 2.6m"
-        field-of-view="28deg"
+        camera-orbit="16deg 76deg 2.9m"
+        field-of-view="24deg"
         interaction-prompt="none"
         aria-label="Клэп"
       />
@@ -845,6 +843,73 @@ function ProfilePanel({ user, savedItems, onPick, onLogout }) {
   );
 }
 
+function AddPlacePanel({ onAdd, userPosition }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    category: "food",
+    address: "",
+    description: "",
+    site: "",
+    schedule: "",
+    price: "",
+    imageUrl: "",
+    lat: "",
+    lon: "",
+  });
+
+  const update = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+
+  const submit = () => {
+    if (!form.title.trim()) return;
+    onAdd(createCustomPlace(form, userPosition || defaultPosition));
+    setForm({
+      title: "",
+      category: "food",
+      address: "",
+      description: "",
+      site: "",
+      schedule: "",
+      price: "",
+      imageUrl: "",
+      lat: "",
+      lon: "",
+    });
+    setOpen(false);
+  };
+
+  return (
+    <section className="add-place-panel">
+      <button className="add-place-toggle" onClick={() => setOpen((value) => !value)}>
+        {open ? "Скрыть форму" : "Добавить любимое место"}
+      </button>
+      {open && (
+        <div className="add-place-form">
+          <input value={form.title} onChange={(event) => update("title", event.target.value)} placeholder="Название места" />
+          <select value={form.category} onChange={(event) => update("category", event.target.value)}>
+            {Object.entries(categoryLabels)
+              .filter(([id]) => id !== "all")
+              .map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+          </select>
+          <input value={form.address} onChange={(event) => update("address", event.target.value)} placeholder="Адрес" />
+          <textarea value={form.description} onChange={(event) => update("description", event.target.value)} placeholder="Почему тебе нравится это место" />
+          <input value={form.site} onChange={(event) => update("site", event.target.value)} placeholder="Сайт или ссылка" />
+          <input value={form.imageUrl} onChange={(event) => update("imageUrl", event.target.value)} placeholder="Ссылка на фото" />
+          <div className="two-columns">
+            <input value={form.lat} onChange={(event) => update("lat", event.target.value)} placeholder="Широта (можно пусто)" />
+            <input value={form.lon} onChange={(event) => update("lon", event.target.value)} placeholder="Долгота (можно пусто)" />
+          </div>
+          <button className="primary-button wide" onClick={submit}>Добавить на карту</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function MascotStatusCard({ selected, route }) {
   return (
     <section className="mascot-status-card">
@@ -872,6 +937,7 @@ function App() {
   const [userPosition, setUserPosition] = useState(defaultPosition);
   const [locationStatus, setLocationStatus] = useState("idle");
   const [savedIds, setSavedIds] = useState([]);
+  const [customPlaces, setCustomPlaces] = useState([]);
   const [search, setSearch] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -884,7 +950,10 @@ function App() {
     const saved = getStoredUser();
     if (saved) setUser(saved);
     setSavedIds(getSavedPlaces());
+    setCustomPlaces(getCustomPlaces());
   }, []);
+
+  const allPlaces = useMemo(() => [...places, ...customPlaces], [customPlaces]);
 
   useEffect(() => {
     if (!user) return;
@@ -910,15 +979,27 @@ function App() {
   }, [user, selected, route, userPosition]);
 
   const visiblePlaces = useMemo(() => {
-    const byCategory = activeCategory === "all" ? places : places.filter((place) => place.category === activeCategory);
+    const byCategory = activeCategory === "all" ? allPlaces : allPlaces.filter((place) => place.category === activeCategory);
     const query = search.trim().toLowerCase();
     if (!query) return byCategory;
     return byCategory.filter((place) =>
       `${place.title} ${place.address} ${place.description} ${categoryLabels[place.category]}`.toLowerCase().includes(query)
     );
-  }, [activeCategory, search]);
+  }, [activeCategory, search, allPlaces]);
 
-  const savedItems = useMemo(() => places.filter((place) => savedIds.includes(place.id)), [savedIds]);
+  const savedItems = useMemo(() => allPlaces.filter((place) => savedIds.includes(place.id)), [savedIds, allPlaces]);
+
+  const addCustomPlace = (place) => {
+    setCustomPlaces((current) => {
+      const next = [place, ...current];
+      saveCustomPlaces(next);
+      return next;
+    });
+    setSelected(place);
+    setActiveCategory(place.category);
+    setActiveTab("home");
+    notify("success");
+  };
 
   const buildRoute = async (place, openDetails = false) => {
     selectionChanged();
@@ -971,14 +1052,10 @@ function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
+      <header className="app-header compact">
         <div>
           <h1>MapClap</h1>
           <p>{uiText.header.subtitle}</p>
-        </div>
-        <div className="header-mascot">
-          <span>{user.city || uiText.auth.defaultCity}</span>
-          <Mascot3D small />
         </div>
       </header>
 
@@ -1022,15 +1099,16 @@ function App() {
                   style={{ "--accent": categoryColors[id] }}
                 >
                   <span>{title}</span>
-                  <small>{places.filter((place) => place.category === id).length} мест</small>
+                  <small>{allPlaces.filter((place) => place.category === id).length} мест</small>
                 </button>
               ))}
           </section>
           <ExpoGuideCard place={visiblePlaces[0] || places[0]} onPick={buildRoute} />
           <div className="section-heading-row">
             <h2>Москва от Клэпа</h2>
-            <span>{places.length} мест</span>
+            <span>{allPlaces.length} мест</span>
           </div>
+          <AddPlacePanel onAdd={addCustomPlace} userPosition={userPosition} />
           <SearchPanel value={search} onChange={setSearch} />
           <section className="places-list horizontal">
             {visiblePlaces.map((place) => (
