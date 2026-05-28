@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MapClap Founder OS</title>
+    <style>
+      :root {
+        --bg: #15120f;
+        --side: #100d0b;
+        --panel: #201a15;
+        --soft: #2a231e;
+        --line: #3a3028;
+        --gold: #f0c36d;
+        --text: #fffaf1;
+        --muted: #d6c8b6;
+        --green: #7bc99a;
+        --blue: #8db7ff;
+        --red: #ff9b8a;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 268px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      aside {
+        padding: 22px;
+        background: var(--side);
+        border-right: 1px solid var(--line);
+      }
+
+      main {
+        padding: 24px;
+      }
+
+      .logo {
+        font-size: 30px;
+        font-weight: 900;
+      }
+
+      .kicker {
+        color: var(--gold);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .muted {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      nav {
+        display: grid;
+        gap: 8px;
+        margin-top: 28px;
+      }
+
+      nav button {
+        border: 0;
+        border-radius: 8px;
+        padding: 12px;
+        text-align: left;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      nav button.active,
+      nav button:hover {
+        background: var(--gold);
+        color: #201a15;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 4px 0 8px;
+        font-size: 36px;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 11px 13px;
+        background: var(--gold);
+        color: #201a15;
+        cursor: pointer;
+        font-weight: 900;
+      }
+
+      .btn.secondary {
+        background: var(--soft);
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .columns {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 16px;
+      }
+
+      .metric {
+        font-size: 31px;
+        font-weight: 900;
+      }
+
+      .label {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        color: var(--muted);
+      }
+
+      th {
+        color: var(--gold);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 11px;
+        background: #fffaf1;
+        color: #201a15;
+        font: inherit;
+      }
+
+      textarea {
+        min-height: 86px;
+        resize: vertical;
+      }
+
+      .form {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .form .wide {
+        grid-column: 1 / -1;
+      }
+
+      .pill {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 5px 8px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .green { background: rgba(123, 201, 154, 0.15); color: var(--green); }
+      .blue { background: rgba(141, 183, 255, 0.15); color: var(--blue); }
+      .red { background: rgba(255, 155, 138, 0.15); color: var(--red); }
+
+      .stack {
+        display: grid;
+        gap: 10px;
+      }
+
+      .task {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--muted);
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .kanban h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+
+      .mini {
+        margin-top: 8px;
+        padding: 10px;
+        border-radius: 8px;
+        background: var(--soft);
+        color: var(--muted);
+      }
+
+      .live-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 7px;
+        background: var(--green);
+        box-shadow: 0 0 0 5px rgba(123, 201, 154, 0.12);
+      }
+
+      .screen { display: none; }
+      .screen.active { display: block; }
+
+      @media (max-width: 920px) {
+        .app,
+        .grid,
+        .columns,
+        .kanban,
+        .form {
+          grid-template-columns: 1fr;
+        }
+
+        aside {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside>
+        <div class="kicker">Founder OS</div>
+        <div class="logo">MapClap</div>
+        <p class="muted">Отдельный кабинет основателя для управления продуктом, контентом и операционкой.</p>
+        <nav>
+          <button class="active" data-screen="overview">Обзор</button>
+          <button data-screen="places">Места</button>
+          <button data-screen="users">Пользователи</button>
+          <button data-screen="partners">Партнеры</button>
+          <button data-screen="routes">Маршруты</button>
+          <button data-screen="finance">Финансы</button>
+          <button data-screen="ops">Операционка</button>
+          <button data-screen="sync">Код и база</button>
+        </nav>
+      </aside>
+
+      <main>
+        <section class="screen active" id="overview">
+          <div class="topbar">
+            <div>
+              <div class="kicker">MVP dashboard</div>
+              <h1>Пульт управления MapClap</h1>
+              <p class="muted">Пока данные локальные. Следующий шаг: подключить Supabase/Firebase и сделать вход только для основателя.</p>
+            </div>
+            <div class="actions">
+              <button class="btn" onclick="alert('Следующий этап: облачная база + логин администратора.')">Подключить базу</button>
+              <button class="btn secondary" onclick="location.reload()">Обновить</button>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="card"><div class="metric">20</div><div class="label">мест в каталоге</div></div>
+            <div class="card"><div class="metric">6</div><div class="label">категорий</div></div>
+            <div class="card"><div class="metric"><span class="live-dot"></span>Live</div><div class="label">режим админки</div></div>
+            <div class="card"><div class="metric">MVP+</div><div class="label">статус</div></div>
+          </div>
+
+          <div class="columns">
+            <div class="card">
+              <h2>Что сейчас контролируем</h2>
+              <table>
+                <thead><tr><th>Модуль</th><th>Статус</th><th>Следующее действие</th></tr></thead>
+                <tbody>
+                  <tr><td>Карта</td><td><span class="pill green">в работе</span></td><td>Подключить реальные маршруты</td></tr>
+                  <tr><td>Каталог</td><td><span class="pill blue">MVP</span></td><td>Проверить фото и источники</td></tr>
+                  <tr><td>Аккаунты</td><td><span class="pill blue">локально</span></td><td>Перенести в облачную базу</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="card">
+              <h2>Быстрые задачи</h2>
+              <div class="stack">
+                <div class="task"><span>Завести GitHub-репозиторий</span><strong>1</strong></div>
+                <div class="task"><span>Подключить базу пользователей</span><strong>2</strong></div>
+                <div class="task"><span>Сделать CMS мест</span><strong>3</strong></div>
+                <div class="task"><span>Добавить модерацию фото</span><strong>4</strong></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="places">
+          <div class="topbar"><div><div class="kicker">Content CMS</div><h1>Места</h1></div></div>
+          <div class="columns">
+          <div class="card">
+            <h2>Добавить место</h2>
+              <div class="form">
+                <input placeholder="Название места" />
+                <select><option>Спорт</option><option>Музыка</option><option>Театр</option><option>Музеи</option><option>Еда</option><option>Развлечения</option></select>
+                <input class="wide" placeholder="Адрес" />
+                <textarea class="wide" placeholder="Описание, настроение, особенности"></textarea>
+                <button class="btn wide">Сохранить в очередь</button>
+              </div>
+            </div>
+            <div class="card">
+              <h2>Модерация</h2>
+              <div class="stack">
+                <div class="task"><span>Проверить координаты</span><span class="pill blue">очередь</span></div>
+                <div class="task"><span>Проверить права на фото</span><span class="pill red">важно</span></div>
+                <div class="task"><span>Обновить карточку на карте</span><span class="pill green">готово</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 14px">
+            <h2>Контент-пайплайн</h2>
+            <div class="kanban">
+              <div class="card">
+                <h3>Черновики</h3>
+                <div class="mini">Новое место от редактора</div>
+                <div class="mini">Фото требует генерации</div>
+              </div>
+              <div class="card">
+                <h3>Модерация</h3>
+                <div class="mini">Проверка адреса и сайта</div>
+                <div class="mini">Проверка категории</div>
+              </div>
+              <div class="card">
+                <h3>Опубликовано</h3>
+                <div class="mini">Показывается на карте</div>
+                <div class="mini">Доступно в подборке</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="users">
+          <div class="topbar"><div><div class="kicker">CRM</div><h1>Пользователи</h1></div></div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Пользователь</th><th>Город</th><th>Сегмент</th><th>Статус</th></tr></thead>
+              <tbody>
+                <tr><td>Демо-пользователь</td><td>Москва</td><td>исследует места</td><td><span class="pill blue">локально</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="screen" id="partners">
+          <div class="topbar"><div><div class="kicker">Sales</div><h1>Партнеры и реклама</h1></div></div>
+          <div class="grid">
+            <div class="card"><div class="metric">0</div><div class="label">заявок бизнеса</div></div>
+            <div class="card"><div class="metric">5</div><div class="label">бесплатных генераций</div></div>
+            <div class="card"><div class="metric">-20%</div><div class="label">старт ниже конкурентов</div></div>
+            <div class="card"><div class="metric">CRM</div><div class="label">следующий модуль</div></div>
+          </div>
+        </section>
+
+        <section class="screen" id="routes">
+          <div class="topbar"><div><div class="kicker">Routing Center</div><h1>Маршруты и транспорт</h1></div></div>
+          <div class="grid">
+            <div class="card"><div class="metric">2ГИС</div><div class="label">Routing API ready</div></div>
+            <div class="card"><div class="metric">6</div><div class="label">видов транспорта</div></div>
+            <div class="card"><div class="metric">fallback</div><div class="label">если API-ключа нет</div></div>
+            <div class="card"><div class="metric">traffic</div><div class="label">после ключа API</div></div>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>Транспорт</th><th>Что отслеживаем</th><th>Источник</th></tr></thead>
+              <tbody>
+                <tr><td>Пешком</td><td>дистанция, время, проходы</td><td>2ГИС/Yandex</td></tr>
+                <tr><td>Авто</td><td>пробки, время, ремонт</td><td>Routing API</td></tr>
+                <tr><td>Автобус/троллейбус</td><td>остановки, пересадки</td><td>Transport API</td></tr>
+                <tr><td>Велик/самокат</td><td>дорожки, запреты, время</td><td>Routing API</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="screen" id="finance">
+          <div class="topbar"><div><div class="kicker">Business OS</div><h1>Финансы и рост</h1></div></div>
+          <div class="grid">
+            <div class="card"><div class="metric">0 ₽</div><div class="label">выручка MVP</div></div>
+            <div class="card"><div class="metric">0</div><div class="label">платных партнеров</div></div>
+            <div class="card"><div class="metric">5</div><div class="label">бесплатных генераций</div></div>
+            <div class="card"><div class="metric">-20%</div><div class="label">цены ниже рынка на старт</div></div>
+          </div>
+          <div class="card">
+            <h2>Юнит-экономика</h2>
+            <div class="form">
+              <input placeholder="Цена размещения, ₽" value="490" />
+              <input placeholder="Цена продвижения, ₽" value="990" />
+              <input placeholder="Цель партнеров / месяц" value="50" />
+              <input placeholder="Прогноз выручки, ₽" value="49 500" />
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="ops">
+          <div class="topbar"><div><div class="kicker">Operations</div><h1>Операционная деятельность</h1></div></div>
+          <div class="card">
+            <div class="stack">
+              <div class="task"><span>Еженедельно обновлять места</span><strong>контент</strong></div>
+              <div class="task"><span>Проверять жалобы и спорные фото</span><strong>модерация</strong></div>
+              <div class="task"><span>Собирать аналитику кликов по маршрутам</span><strong>рост</strong></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="screen" id="sync">
+          <div class="topbar"><div><div class="kicker">Infrastructure</div><h1>Код, база и релизы</h1></div></div>
+          <div class="card">
+            <p class="muted">
+              Для настоящего ресурса нужно подключить GitHub для кода, Supabase/Firebase/Postgres для пользователей,
+              S3/Cloudinary для фото, отдельный домен для админки и закрытую авторизацию основателя.
+            </p>
+            <div class="actions">
+              <button class="btn">Создать план подключения</button>
+              <button class="btn secondary">Экспортировать структуру</button>
+            </div>
+          </div>
+          <div class="card" style="margin-top: 14px">
+            <h2>Firebase real-time база</h2>
+            <p class="muted">
+              Для живых данных создай Firebase-проект, включи Authentication, Firestore или Realtime Database,
+              Storage для фото и вставь web config в файл <strong>admin/firebase-config.js</strong>.
+            </p>
+            <p class="muted" id="firebase-status">Firebase: локальный режим, конфиг еще не подключен.</p>
+            <table>
+              <thead><tr><th>Коллекция</th><th>Для чего</th><th>Статус</th></tr></thead>
+              <tbody>
+                <tr><td>users</td><td>аккаунты, город, интересы, согласия</td><td><span class="pill blue">готово к подключению</span></td></tr>
+                <tr><td>places</td><td>карточки мест, фото, сайты, координаты</td><td><span class="pill blue">готово к подключению</span></td></tr>
+                <tr><td>routes</td><td>история маршрутов и транспорт</td><td><span class="pill blue">готово к подключению</span></td></tr>
+                <tr><td>partners</td><td>заявки бизнесов и реклама</td><td><span class="pill blue">готово к подключению</span></td></tr>
+                <tr><td>moderation</td><td>очередь фото, жалоб и правок</td><td><span class="pill blue">готово к подключению</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script type="module">
+      const status = document.getElementById("firebase-status");
+      const config = window.MAPCLAP_FIREBASE_CONFIG;
+
+      if (config && config.apiKey && !config.apiKey.includes("YOUR_")) {
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js");
+        const { getDatabase, ref, onValue, set, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js");
+
+        const app = initializeApp(config);
+        const db = getDatabase(app);
+        await set(ref(db, "system/founderDashboard"), {
+          online: true,
+          updatedAt: serverTimestamp()
+        });
+
+        onValue(ref(db, "places"), (snapshot) => {
+          const count = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+          status.textContent = `Firebase: подключено, мест в базе: ${count}`;
+        });
+      }
+    </script>
+    <script>
+      const buttons = document.querySelectorAll("nav button");
+      const screens = document.querySelectorAll(".screen");
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => {
+          buttons.forEach((item) => item.classList.remove("active"));
+          screens.forEach((screen) => screen.classList.remove("active"));
+          button.classList.add("active");
+          document.getElementById(button.dataset.screen).classList.add("active");
+        });
+      });
+    </script>
+  </body>
+</html>

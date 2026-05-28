@@ -20,7 +20,7 @@ import "./styles.css";
 
 const tg = window.Telegram?.WebApp;
 const defaultPosition = MAPCLAP_CONFIG.defaultPosition;
-const transportModes = uiText.transport;
+const routeMode = "walk";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -578,7 +578,7 @@ function MapPanel({
   );
 }
 
-function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode }) {
+function RoutePanel({ selected, route, onRoute }) {
   return (
     <section className="route-panel">
       <div>
@@ -587,21 +587,10 @@ function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode 
       </div>
       {selected ? (
         <>
-          <div className="transport-tabs">
-            {Object.entries(transportModes).map(([id, label]) => (
-              <button
-                key={id}
-                className={transportMode === id ? "active" : ""}
-                onClick={() => setTransportMode(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           <div className="route-stats">
             <span>{route?.durationText || uiText.route.updating}</span>
             <span>{route?.distanceText || uiText.route.title}</span>
-            <span>{route?.source || "MapClap"}</span>
+            <span>{route?.source || "Yandex Maps"}</span>
           </div>
           <button className="primary-button compact" onClick={() => onRoute(selected)}>
             {uiText.route.build}
@@ -614,7 +603,7 @@ function RoutePanel({ selected, route, onRoute, transportMode, setTransportMode 
   );
 }
 
-function MapActionDock({ selected, route, onRoute, onShowDetails, transportMode, setTransportMode }) {
+function MapActionDock({ selected, route, onRoute, onShowDetails, userPosition }) {
   return (
     <section className="map-action-dock">
       <div>
@@ -622,23 +611,26 @@ function MapActionDock({ selected, route, onRoute, onShowDetails, transportMode,
         <h3>{selected ? selected.title : uiText.route.choosePoint}</h3>
         <span>
           {selected && route
-            ? `${transportModes[route.mode] || "Маршрут"} · ${route.durationText} · ${route.distanceText}`
+            ? `${route.durationText} · ${route.distanceText}`
             : uiText.route.noRoute}
         </span>
       </div>
       {selected && (
-        <>
-          <div className="transport-tabs compact">
-            {Object.entries(transportModes).map(([id, label]) => (
-              <button
-                key={id}
-                className={transportMode === id ? "active" : ""}
-                onClick={() => setTransportMode(id)}
-              >
-                {label}
-              </button>
-            ))}
+        <div className="route-path-card">
+          <div>
+            <i className="route-dot start" />
+            <span>Твоя геопозиция</span>
+            <small>{userPosition?.accuracy ? `точность ${Math.round(userPosition.accuracy)} м` : "ожидаю точную геолокацию"}</small>
           </div>
+          <div>
+            <i className="route-dot finish" />
+            <span>{selected.title}</span>
+            <small>{selected.address}</small>
+          </div>
+        </div>
+      )}
+      {selected && (
+        <>
           <div className="map-action-buttons">
             <button onClick={() => onRoute(selected)}>{uiText.route.update}</button>
             <button onClick={onShowDetails}>{uiText.route.card}</button>
@@ -882,7 +874,6 @@ function App() {
   const [savedIds, setSavedIds] = useState([]);
   const [search, setSearch] = useState("");
   const [detailOpen, setDetailOpen] = useState(false);
-  const [transportMode, setTransportMode] = useState("walk");
 
   useEffect(() => {
     setupTelegramApp();
@@ -915,8 +906,8 @@ function App() {
 
   useEffect(() => {
     if (!user || !selected || route) return;
-    requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then(setRoute);
-  }, [user, selected, route, userPosition, transportMode]);
+    requestRoute(userPosition || defaultPosition, selected.coordinates, routeMode).then(setRoute);
+  }, [user, selected, route, userPosition]);
 
   const visiblePlaces = useMemo(() => {
     const byCategory = activeCategory === "all" ? places : places.filter((place) => place.category === activeCategory);
@@ -936,7 +927,7 @@ function App() {
     setDetailOpen(openDetails);
     const from = userPosition || defaultPosition;
     const to = place.coordinates;
-    const nextRoute = await requestRoute(from, to, transportMode);
+    const nextRoute = await requestRoute(from, to, routeMode);
     setRoute(nextRoute);
     notify("success");
     setRouteProgress(0);
@@ -966,17 +957,9 @@ function App() {
   };
 
   useEffect(() => {
-    if (!user || !selected) return;
-    requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then((nextRoute) => {
-      setRoute(nextRoute);
-      setRouteProgress(0);
-    });
-  }, [transportMode]);
-
-  useEffect(() => {
     if (!user || !selected || locationStatus !== "granted") return;
     const timer = window.setTimeout(() => {
-      requestRoute(userPosition || defaultPosition, selected.coordinates, transportMode).then((nextRoute) => {
+      requestRoute(userPosition || defaultPosition, selected.coordinates, routeMode).then((nextRoute) => {
         setRoute(nextRoute);
         setRouteProgress(0);
       });
@@ -1021,8 +1004,7 @@ function App() {
             route={route}
             onRoute={buildRoute}
             onShowDetails={() => setDetailOpen(true)}
-            transportMode={transportMode}
-            setTransportMode={setTransportMode}
+            userPosition={userPosition}
           />
         </>
       ) : (

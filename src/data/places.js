@@ -17,6 +17,8 @@ export const categoryColors = {
   fun: "#d59bff",
 };
 
+const photo = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=85`;
+
 export const places = [
   {
     id: "tagansky-park",
@@ -27,8 +29,7 @@ export const places = [
     site: "https://taganskiypark.ru",
     schedule: "Ежедневно",
     price: "Бесплатно, активности отдельно",
-    imageUrl:
-      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1500530855697-b586d89ba3ee"),
     description:
       "Зеленая точка района для прогулок, пробежек, катка зимой и спокойных тренировок после учебы или работы.",
   },
@@ -41,8 +42,7 @@ export const places = [
     site: "https://www.mos.ru/sport",
     schedule: "По расписанию секций",
     price: "По абонементам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1571902943202-507ec2618e8f"),
     description:
       "Бассейн, тренажерный зал и секции в понятном городском формате без лишнего пафоса.",
   },
@@ -55,8 +55,7 @@ export const places = [
     site: "https://www.mos.ru/sport",
     schedule: "По расписанию",
     price: "По занятиям",
-    imageUrl:
-      "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1518611012118-696072aa579a"),
     description:
       "Универсальная спортивная точка для регулярных занятий, групповых тренировок и базовой физической формы.",
   },
@@ -69,8 +68,7 @@ export const places = [
     site: "https://www.mos.ru",
     schedule: "Круглосуточно",
     price: "Бесплатно",
-    imageUrl:
-      "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1476480862126-209bfaa8edc8"),
     description:
       "Маршрут для ходьбы, бега и велосипеда: вода, старые фасады и спокойный городской ритм.",
   },
@@ -83,8 +81,7 @@ export const places = [
     site: "https://agglomerat.moscow",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1501386761578-eac5c94b800a"),
     description:
       "Альтернативная концертная площадка с живыми выступлениями, электронными ночами и плотной сценической энергией.",
   },
@@ -97,8 +94,7 @@ export const places = [
     site: "https://zaryadyehall.com",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1465847899084-d164df4dedc6"),
     description:
       "Современный зал рядом с центром: симфонические концерты, камерная музыка и сильная акустика.",
   },
@@ -111,8 +107,7 @@ export const places = [
     site: "https://powerhousemoscow.com",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1516280440614-37939bbacd81?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1516280440614-37939bbacd81"),
     description:
       "Камерные концерты, диджей-сеты и барная атмосфера для вечера без ощущения массового зала.",
   },
@@ -125,8 +120,7 @@ export const places = [
     site: "https://mmdm.ru",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1449518193813-37a7d8014e82?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1449518193813-37a7d8014e82"),
     description:
       "Большие концерты, классика, джаз и заметные музыкальные события в нескольких залах.",
   },
@@ -139,8 +133,7 @@ export const places = [
     site: "https://tagankateatr.ru",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1503095396549-807759245b35?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1503095396549-807759245b35"),
     description:
       "Легендарный театр района: сильная история, современная афиша и узнаваемая таганская энергия.",
   },
@@ -153,8 +146,7 @@ export const places = [
     site: "https://taganka-sat.ru",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1514306191717-452ec28c7814?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1514306191717-452ec28c7814"),
     description:
       "Театральная площадка с традицией старой Таганки и спектаклями для разного настроения.",
   },
@@ -167,8 +159,7 @@ export const places = [
     site: "https://teatrnapokrovke.ru",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1507924538820-ede94a04019d?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1507924538820-ede94a04019d"),
     description:
       "Камерный театр с близкой дистанцией между сценой и зрителем, хорош для спокойного вечера.",
   },
@@ -181,8 +172,7 @@ export const places = [
     site: "https://teatrdoc.ru",
     schedule: "По афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1507676184212-d03ab07a01bf"),
     description:
       "Независимая сцена для современной драматургии, острых тем и живого разговора со зрителем.",
   },
@@ -195,8 +185,7 @@ export const places = [
     site: "https://russikona.ru",
     schedule: "Уточнять на сайте",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1544967082-d9d25d867d66?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1544967082-d9d25d867d66"),
     description:
       "Один из самых заметных частных музеев Москвы с большой коллекцией икон и древнерусского искусства.",
   },
@@ -209,8 +198,7 @@ export const places = [
     site: "https://bunker42.com",
     schedule: "По экскурсиям",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1518005020951-eccb494ad742"),
     description:
       "Подземный музей холодной войны: настоящий бункер, экскурсии и необычное ощущение скрытой Москвы.",
   },
@@ -223,8 +211,7 @@ export const places = [
     site: "https://visotsky.ru",
     schedule: "Уточнять на сайте",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1513475382585-d06e58bcb0e0"),
     description:
       "Место про голос, эпоху и атмосферу Таганки, связанную с Владимиром Высоцким.",
   },
@@ -237,8 +224,7 @@ export const places = [
     site: "https://mus-col.com",
     schedule: "По записи и афише",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1564399579883-451a5d44ec08?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1564399579883-451a5d44ec08"),
     description:
       "Коллекция механизмов, часов, музыкальных автоматов и редких предметов для неспешного погружения.",
   },
@@ -251,8 +237,7 @@ export const places = [
     site: "https://megreliya.ru",
     schedule: "Ежедневно",
     price: "Средний чек",
-    imageUrl:
-      "https://images.unsplash.com/photo-1559329007-40df8a9345d8?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1559329007-40df8a9345d8"),
     description:
       "Грузинская кухня для теплого ужина: хачапури, хинкали и атмосфера, в которой хочется задержаться.",
   },
@@ -265,8 +250,7 @@ export const places = [
     site: "https://lambicbrasserie.ru",
     schedule: "Ежедневно",
     price: "Средний чек",
-    imageUrl:
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1517248135467-4c7edcad34c4"),
     description:
       "Бельгийская кухня, напитки и спокойная ресторанная атмосфера для компании или свидания без шаблонов.",
   },
@@ -279,8 +263,7 @@ export const places = [
     site: "https://brooms.ru",
     schedule: "Ежедневно",
     price: "Кофе и завтраки",
-    imageUrl:
-      "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1509042239860-f550ce710b93"),
     description:
       "Кофе, завтраки и стильная городская посадка, когда хочется начать день красиво и без суеты.",
   },
@@ -293,8 +276,7 @@ export const places = [
     site: "https://blanc.moscow",
     schedule: "Ежедневно",
     price: "Средний чек",
-    imageUrl:
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1555396273-367ea4eb4db5"),
     description:
       "Модное пространство с двориком, кухней и вечерней атмосферой рядом с историческим центром.",
   },
@@ -307,8 +289,7 @@ export const places = [
     site: "https://gosfilmofond.ru/illusion",
     schedule: "По сеансам",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1489599849927-2ee91cede3ba"),
     description:
       "Культовый кинотеатр с авторским, архивным и фестивальным кино в очень московской локации.",
   },
@@ -321,8 +302,7 @@ export const places = [
     site: "https://moslabirint.ru",
     schedule: "По расписанию",
     price: "По билетам",
-    imageUrl:
-      "https://images.unsplash.com/photo-1526816229784-65d5d54ac8bc?auto=format&fit=crop&w=1200&q=85",
+    imageUrl: photo("photo-1526816229784-65d5d54ac8bc"),
     description:
       "Квесты, лабиринт и активный формат отдыха для компании, когда хочется не просто сидеть за столом.",
   },
